@@ -1,0 +1,78 @@
+=================================================================
+           LAPORAN ANALISIS META ADS
+        WAHANA EXPRESS - PENGIRIMAN LUAR NEGERI
+=================================================================
+
+Periode Data  : 09 Apr 2026 - 06 Jun 2026
+Total Minggu  : 7 minggu (7 aktif, 0 mati)
+
+-----------------------------------------------------------------
+A. RINGKASAN KESELURUHAN
+-----------------------------------------------------------------
+  Total Spending Iklan    : Rp      10,418,672
+  Total Views             :         200,660
+  Total Viewers           :         160,514
+  Total Link Clicks       :           8,335
+  Total TTK (Resi)        :             381  (7 minggu ada data)
+  Total KG Pengiriman     :           1,310  (7 minggu ada data)
+
+-----------------------------------------------------------------
+B. EFISIENSI BIAYA (Spend vs TTK vs KG)
+-----------------------------------------------------------------
+  Cost per TTK (rata-rata)  : Rp       27,346 /resi
+  Cost per KG  (rata-rata)  : Rp        7,953 /kg
+  Rata-rata TTK/Minggu      :         54.4 resi
+  Rata-rata KG/Minggu       :        187.1 kg
+  Rata-rata Spend/Minggu    : Rp    1,488,382
+
+  EVALUASI:
+  - Setiap 1 resi (TTK) butuh biaya iklan Rp 27,346
+  - Setiap 1 kg pengiriman butuh biaya iklan Rp 7,953
+  - Untuk menilai WORTH IT atau tidak:
+    Bandingkan Cost/TTK (Rp 27,346) dengan profit per resi Anda.
+    Bandingkan Cost/KG (Rp 7,953) dengan profit per kg Anda.
+    Jika profit per resi > Rp 27,346 --> WORTH IT
+    Jika profit per resi < Rp 27,346 --> TIDAK WORTH IT
+
+-----------------------------------------------------------------
+C. ANALISIS TREN
+-----------------------------------------------------------------
+  Jumlah TTK    : [NAIK] (+80.1%)
+  Jumlah KG     : [NAIK] (+38.7%)
+  Total Spend   : [STABIL] (-0.0%)
+  Cost per TTK  : [TURUN] (-49.4%)
+  Cost per KG   : [TURUN] (-38.5%)
+  Total Views   : [TURUN] (-37.8%)
+  CTR           : [NAIK] (+58.0%)
+
+-----------------------------------------------------------------
+D. PERFORMA PER BULAN
+-----------------------------------------------------------------
+  Bulan                Spend    TTK      KG     Cost/TTK      Cost/KG
+  ---------- --------------- ------ ------- ------------ ------------
+  2026-04    Rp    4,465,997    133     486 Rp    33,579 Rp     9,189
+  2026-05    Rp    4,464,023    180     567 Rp    24,800 Rp     7,873
+  2026-06    Rp    1,488,652     68     257 Rp    21,892 Rp     5,792
+
+  Paling efisien (Cost/TTK terendah)  : 2026-06 (Rp 21,892/resi)
+  Paling boros   (Cost/TTK tertinggi) : 2026-04 (Rp 33,579/resi)
+
+-----------------------------------------------------------------
+E. ANALISIS DAMPAK: MINGGU IKLAN MATI
+-----------------------------------------------------------------
+  Semua minggu iklan aktif
+
+-----------------------------------------------------------------
+F. REKOMENDASI
+-----------------------------------------------------------------
+  1. ANGKA KUNCI: Biaya rata-rata Rp 27,346 per resi (TTK)
+     dan Rp 7,953 per KG.
+     --> Jika profit per resi LEBIH BESAR dari Rp 27,346, iklan WORTH IT.
+     --> Jika profit per resi LEBIH KECIL dari Rp 27,346, iklan TIDAK WORTH IT.
+  2. [+] Cost per TTK MENURUN - iklan semakin efisien seiring waktu.
+  3. [+] Tren TTK naik - iklan semakin efektif mendatangkan resi.
+  4. [+] Tren KG naik - volume pengiriman meningkat.
+
+=================================================================
+           AKHIR LAPORAN
+=================================================================
