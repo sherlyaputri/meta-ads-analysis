@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.patches as patches
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
@@ -345,84 +346,137 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
     if len(df_kargo_data) > 0:
         p(f"Catatan       : {len(df_kargo_data)} baris data Kargo dipisahkan dari analisis utama")
 
-    # --- A. RINGKASAN ---
+    # --- BAB 1: KESIMPULAN DARI GRAFIK ANALISIS ---
+    p("\n=================================================================")
+    p("      BAB 1: KESIMPULAN DARI GRAFIK ANALISIS (Performa Dasar)")
+    p("=================================================================")
+
+    # 1. Tren Biaya & Pengeluaran
     p("\n" + "-" * 65)
-    p("A. RINGKASAN KESELURUHAN (Semua Daerah)")
+    p("1. TREN BIAYA & PENGELUARAN")
     p("-" * 65)
     p(f"  Total Spending Iklan    : Rp {total_spend:>15,.0f}")
-    p(f"  Total Views             : {total_views:>15,.0f}")
-    p(f"  Total Link Clicks       : {total_clicks:>15,.0f}")
-    p(f"  Total TTK (Resi)        : {total_ttk:>15,.0f}")
-    p(f"  Total KG Pengiriman     : {total_kg:>15,.0f}")
     p(f"  Cost per TTK (rata-rata): Rp {avg_cost_per_ttk:>15,.0f}")
     p(f"  Cost per KG (rata-rata) : Rp {avg_cost_per_kg:>15,.0f}")
+    p(f"  Status Tren Biaya       : {trend_cost_per_ttk['direction']} ({trend_cost_per_ttk['pct_change']:+.1f}%)")
 
-    # --- B. LEADERBOARD DAERAH ---
+    # 2. Tren Volume Pengiriman
     p("\n" + "-" * 65)
-    p("B. PERINGKAT EFISIENSI DAERAH (Cost per TTK Termurah)")
+    p("2. TREN VOLUME PENGIRIMAN MINGGUAN")
+    p("-" * 65)
+    p(f"  Total TTK (Resi)        : {total_ttk:>15,.0f}")
+    p(f"  Total KG Pengiriman     : {total_kg:>15,.0f}")
+    p(f"  Status Tren TTK         : {trend_ttk['direction']} ({trend_ttk['pct_change']:+.1f}%)")
+    p(f"  Status Tren Volume KG   : {trend_kg['direction']} ({trend_kg['pct_change']:+.1f}%)")
+
+    # 3. Kontributor Terbesar
+    p("\n" + "-" * 65)
+    p("3. KONTRIBUTOR TERBESAR (Top Lokasi TTK)")
     p("-" * 65)
     if len(df_loc_stats_sorted) > 0:
-        for i, row in df_loc_stats_sorted.iterrows():
-            loc_name = row['Location'][:18]
-            ttk = row['TTK']
-            cpt = f"Rp {row['Cost_per_TTK']:,.0f}" if pd.notna(row['Cost_per_TTK']) else "TIDAK ADA RESI"
-            trend = f"{row['Trend_TTK_dir']} ({row['Trend_TTK_pct']:+.1f}%)"
-
-            status = "BAIK"
-            if pd.isna(row['Cost_per_TTK']): status = "BOCOR"
-            elif row['Cost_per_TTK'] < avg_cost_per_ttk * 0.8: status = "SANGAT BAIK"
-            elif row['Cost_per_TTK'] > avg_cost_per_ttk * 1.5: status = "KURANG"
-
-            p(f"  - {loc_name:<18} | TTK: {ttk:>6.0f} | {cpt:>14} | {status}")
+        top3_loc = df_loc_stats_sorted.head(3)
+        for _, row in top3_loc.iterrows():
+            pct_contrib = (row['TTK'] / total_ttk) * 100 if total_ttk > 0 else 0
+            p(f"  - {row['Location']:<18} : {row['TTK']:>6,.0f} resi ({pct_contrib:.1f}%)")
     else:
         p("  Tidak ada data lokasi spesifik.")
 
-    # --- C. TREN KESELURUHAN ---
+    # 4. Tingkat Efisiensi Anggaran
     p("\n" + "-" * 65)
-    p("C. ANALISIS TREN (Global)")
-    p("-" * 65)
-    p(f"  Jumlah TTK    : {trend_ttk['direction']} ({trend_ttk['pct_change']:+.1f}%)")
-    p(f"  Jumlah KG     : {trend_kg['direction']} ({trend_kg['pct_change']:+.1f}%)")
-    p(f"  Total Spend   : {trend_spend['direction']} ({trend_spend['pct_change']:+.1f}%)")
-    p(f"  Cost per TTK  : {trend_cost_per_ttk['direction']} ({trend_cost_per_ttk['pct_change']:+.1f}%)")
-
-    # --- D. REKOMENDASI BUDGET ---
-    p("\n" + "-" * 65)
-    p("D. REKOMENDASI BUDGET (BERDASARKAN LOKASI)")
+    p("4. TINGKAT EFISIENSI ANGGARAN (Lokasi Cost/TTK Termurah)")
     p("-" * 65)
     recs = []
     for i, row in df_loc_stats_sorted.iterrows():
         if pd.isna(row['Cost_per_TTK']) and row['Spend'] > 0:
             recs.append(f"[!] MATIKAN iklan di {row['Location']} (Spend Rp {row['Spend']:,.0f} tanpa closing).")
         elif pd.notna(row['Cost_per_TTK']) and row['Cost_per_TTK'] > avg_cost_per_ttk * 1.5:
-            recs.append(f"[!] EVALUASI/KURANGI budget {row['Location']} (Cost/TTK Rp {row['Cost_per_TTK']:,.0f} lebih mahal dari rata-rata).")
+            recs.append(f"[!] EVALUASI/KURANGI budget {row['Location']} (Cost/TTK Rp {row['Cost_per_TTK']:,.0f} > rata-rata).")
         elif pd.notna(row['Cost_per_TTK']) and row['Cost_per_TTK'] < avg_cost_per_ttk * 0.8:
-            recs.append(f"[+] NAIKKAN budget {row['Location']} (Cost/TTK sangat murah: Rp {row['Cost_per_TTK']:,.0f}).")
-
+            recs.append(f"[+] NAIKKAN budget {row['Location']} (Sangat murah, Cost/TTK: Rp {row['Cost_per_TTK']:,.0f}).")
     if not recs:
         p("  Semua lokasi berkinerja merata, pertahankan strategi.")
     else:
         for r in recs:
             p(f"  {r}")
 
-    # --- E. KESEHATAN KONTEN ---
+    # --- BAB 2: KESIMPULAN DARI GRAFIK KESEHATAN ---
+    p("\n=================================================================")
+    p("   BAB 2: KESIMPULAN DARI GRAFIK KESEHATAN (Kinerja & Interaksi)")
+    p("=================================================================")
+
+    # 5. Alur Konversi Keseluruhan
+    pct_ctr = (total_clicks / total_views) * 100 if total_views > 0 else 0
+    pct_cvr = (total_ttk / total_clicks) * 100 if total_clicks > 0 else 0
+    pct_total = (total_ttk / total_views) * 100 if total_views > 0 else 0
     p("\n" + "-" * 65)
-    p("E. KESEHATAN KONTEN & INTERAKSI IKLAN")
+    p("5. ALUR KONVERSI KESELURUHAN (FLOWCHART FUNNEL)")
+    p("-" * 65)
+    p(f"  - Total Views           : {total_views:>15,.0f}")
+    p(f"  - Total Link Clicks     : {total_clicks:>15,.0f}")
+    p(f"  - Total Resi (TTK)      : {total_ttk:>15,.0f}")
+    p("\n  Tingkat Konversi:")
+    p(f"  - CTR (Daya Tarik Iklan): {pct_ctr:.2f}% (Persentase dari Views yang menjadi Klik)")
+    p(f"  - CVR (Closing Sales)   : {pct_cvr:.2f}% (Persentase dari Klik yang menjadi Resi)")
+    p(f"  - Total Konversi Akhir  : {pct_total:.2f}% (Persentase dari Views hingga menjadi Resi)")
+
+    # 6. Analisis Kuadran
+    p("\n" + "-" * 65)
+    p("6. ANALISIS KUADRAN (Interaksi vs Closing)")
     p("-" * 65)
     p(f"  Rata-rata Global CTR (Daya Tarik)   : {avg_ctr:.2f}%")
     p(f"  Rata-rata Global CVR (Closing/Resi) : {avg_cvr:.2f}%")
 
-    p("\n  1. BINTANG IKLAN (Daya Tarik TINGGI, Closing TINGGI):")
-    if stars: p("     - " + ", ".join(stars) + "\n     (Pertahankan konten iklan di daerah ini)")
-    else: p("     - Belum ada daerah yang masuk kategori ini.")
+    p("\n  [BINTANG IKLAN] Daya Tarik TINGGI, Closing TINGGI:")
+    if stars: p("    - " + ", ".join(stars) + "\n    (Pertahankan konten iklan di daerah ini karena terbukti efektif)")
+    else: p("    - Belum ada daerah yang masuk kategori ini.")
 
-    p("\n  2. BOCOR DI CS/PENAWARAN (Daya Tarik TINGGI, Closing RENDAH):")
-    if attention: p("     - " + ", ".join(attention) + "\n     (Iklan banyak di-klik tapi jarang kirim. Evaluasi harga/layanan/CS.)")
-    else: p("     - Tidak ada.")
+    p("\n  [BOCOR DI CS] Daya Tarik TINGGI, Closing RENDAH:")
+    if attention: p("    - " + ", ".join(attention) + "\n    (Iklan banyak di-klik tapi jarang kirim. Evaluasi harga/layanan/CS segera)")
+    else: p("    - Tidak ada.")
 
-    p("\n  3. KONTEN KURANG MENARIK (Daya Tarik RENDAH, Closing TINGGI):")
-    if improve_content: p("     - " + ", ".join(improve_content) + "\n     (Sedikit yang klik, tapi yang klik PASTI kirim. Coba ganti gambar/video iklan.)")
-    else: p("     - Tidak ada.")
+    p("\n  [KONTEN KURANG MENARIK] Daya Tarik RENDAH, Closing TINGGI:")
+    if improve_content: p("    - " + ", ".join(improve_content) + "\n    (Sedikit yang klik, tapi yang klik PASTI kirim. Ganti/perbarui gambar iklan)")
+    else: p("    - Tidak ada.")
+
+    # 7. Pergerakan Mingguan Iklan
+    p("\n" + "-" * 65)
+    p("7. PERGERAKAN MINGGUAN KESEHATAN KONTEN")
+    p("-" * 65)
+    time_health = df_valid.groupby(df_valid.index).agg({'Views': 'sum', 'Link_Clicks': 'sum', 'TTK': 'sum'})
+    if len(time_health) > 1:
+        first_ctr = (time_health.iloc[0]['Link_Clicks'] / time_health.iloc[0]['Views']) * 100 if time_health.iloc[0]['Views'] > 0 else 0
+        last_ctr = (time_health.iloc[-1]['Link_Clicks'] / time_health.iloc[-1]['Views']) * 100 if time_health.iloc[-1]['Views'] > 0 else 0
+        first_cvr = (time_health.iloc[0]['TTK'] / time_health.iloc[0]['Link_Clicks']) * 100 if time_health.iloc[0]['Link_Clicks'] > 0 else 0
+        last_cvr = (time_health.iloc[-1]['TTK'] / time_health.iloc[-1]['Link_Clicks']) * 100 if time_health.iloc[-1]['Link_Clicks'] > 0 else 0
+        
+        ctr_trend = "Meningkat" if last_ctr > first_ctr else "Menurun/Jenuh"
+        cvr_trend = "Meningkat" if last_cvr > first_cvr else "Menurun"
+        
+        p(f"  - Daya Tarik (CTR) awal periode : {first_ctr:.2f}% | Akhir periode: {last_ctr:.2f}% -> [{ctr_trend.upper()}]")
+        p(f"  - Closing (CVR) awal periode    : {first_cvr:.2f}% | Akhir periode: {last_cvr:.2f}% -> [{cvr_trend.upper()}]")
+    else:
+        p("  Data mingguan tidak cukup untuk melihat pergerakan historis.")
+
+    # 8. Korelasi Klik dengan Volume
+    p("\n" + "-" * 65)
+    p("8. KORELASI KLIK VS VOLUME PENGIRIMAN (KG)")
+    p("-" * 65)
+    loc_health_kg = loc_health.dropna(subset=['KG']).copy()
+    loc_health_kg = loc_health_kg[loc_health_kg['Link_Clicks'] > 0]
+    med_clicks = loc_health_kg['Link_Clicks'].median() if not loc_health_kg.empty else 0
+    med_kg = loc_health_kg['KG'].median() if not loc_health_kg.empty else 0
+    high_click_high_kg = loc_health_kg[(loc_health_kg['Link_Clicks'] > med_clicks) & (loc_health_kg['KG'] > med_kg)]['Location'].tolist()
+    high_click_low_kg = loc_health_kg[(loc_health_kg['Link_Clicks'] > med_clicks) & (loc_health_kg['KG'] <= med_kg)]['Location'].tolist()
+    
+    if high_click_high_kg:
+        p("  [KORELASI SEHAT] Klik Tinggi -> Volume (KG) Tinggi:")
+        p("    - " + ", ".join(high_click_high_kg))
+    if high_click_low_kg:
+        p("\n  [KORELASI KURANG EFISIEN] Klik Tinggi -> Volume (KG) Rendah:")
+        p("    - " + ", ".join(high_click_low_kg))
+        p("    (Iklan di daerah ini populer tapi seringnya hanya untuk pengiriman paket ringan)")
+    if not high_click_high_kg and not high_click_low_kg:
+        p("    - Tidak cukup data volume KG untuk menghitung korelasi.")
 
     # --- F. DATA KARGO (jika ada) ---
     if len(df_kargo_data) > 0:
@@ -473,6 +527,9 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
         ax1.set_xticklabels(date_labels, rotation=45, ha='right')
         ax1.set_title('Total TTK (Resi) per Minggu', fontweight='bold')
         ax1.legend()
+        for i, v in enumerate(df_agg_date['TTK']):
+            if pd.notna(v) and v > 0:
+                ax1.text(i, v + (v*0.02), f'{v:.0f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
 
     # 2. Cost per TTK per Lokasi
     ax2 = axes[0, 1]
@@ -508,14 +565,24 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
     if len(monthly_valid) > 0:
         month_labels = [str(m) for m in monthly_valid.index]
         x_pos = np.arange(len(month_labels))
-        ax4.bar(x_pos, monthly_valid['Cost_per_TTK'] / 1000, color='#9C27B0', alpha=0.8)
+        values = monthly_valid['Cost_per_TTK'] / 1000
+        ax4.bar(x_pos, values, color='#9C27B0', alpha=0.8)
         ax4.set_xticks(x_pos)
         ax4.set_xticklabels(month_labels, rotation=45)
         ax4.set_ylabel('Cost per TTK (Ribu Rp)', fontweight='bold')
         ax4.set_title('Cost per TTK per Bulan', fontweight='bold')
-        for i, v in enumerate(monthly_valid['Cost_per_TTK'] / 1000):
+        
+        # Adjust scale to zoom in on differences
+        min_val = values.min()
+        max_val = values.max()
+        if min_val > 0 and max_val > min_val:
+            diff = max_val - min_val
+            ax4.set_ylim(max(0, min_val - diff * 0.5), max_val + diff * 0.5)
+            
+        for i, v in enumerate(values):
             if v > 0:
-                ax4.text(i, v + (v*0.02), f'{v:.2f}K', ha='center', va='bottom', fontsize=8, fontweight='bold')
+                y_offset = (max_val - min_val) * 0.05 if max_val > min_val else v * 0.02
+                ax4.text(i, v + y_offset, f'{v:.4f}K', ha='center', va='bottom', fontsize=8, fontweight='bold')
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     chart_path = output_dir / f'grafik_analisis_{output_prefix}.png'
@@ -525,27 +592,73 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
 
     # ---- VISUALISASI KESEHATAN KONTEN ----
     print(f"   [{title_label}] Membuat visualisasi kesehatan konten...")
+    
+    def annotate_scatter(ax, df_plot, x_col, y_col):
+        groups = {}
+        for _, r in df_plot.iterrows():
+            if pd.isna(r[x_col]) or pd.isna(r[y_col]): continue
+            xr = round(r[x_col], 2)
+            if xr not in groups: groups[xr] = []
+            groups[xr].append(r)
+        
+        x_mean = df_plot[x_col].mean()
+        for x_val, rows in groups.items():
+            rows.sort(key=lambda r: r[y_col], reverse=True)
+            for j, r in enumerate(rows):
+                y_offset = ((len(rows)-1)/2.0 - j) * 20
+                if len(rows) == 1: y_offset = 15
+                x_offset = 40 if r[x_col] <= x_mean else -40
+                ha_val = 'left' if x_offset > 0 else 'right'
+                ax.annotate(r['Location'], xy=(r[x_col], r[y_col]),
+                            xytext=(x_offset, y_offset), textcoords='offset points',
+                            ha=ha_val, va='center', fontsize=9,
+                            arrowprops=dict(arrowstyle="->", color='#555555', lw=0.8, alpha=0.7))
+
     fig2 = plt.figure(figsize=(20, 14))
     fig2.suptitle(f'Dashboard Kesehatan Konten (Interaksi Iklan & Pengiriman)\nWahana Express - {title_label}',
                   fontsize=20, fontweight='bold', y=0.98)
     gs = fig2.add_gridspec(2, 2)
 
-    # Funnel
+    # Alur Konversi Keseluruhan (Flowchart)
     ax2_1 = fig2.add_subplot(gs[0, 0])
-    # FORMULA: Funnel Konversi = Sum dari Views, Link_Clicks, dan TTK secara keseluruhan
+    ax2_1.axis('off')
+    ax2_1.set_xlim(0, 1)
+    ax2_1.set_ylim(0, 1)
+    
     tv = loc_health['Views'].sum()
     tc = loc_health['Link_Clicks'].sum()
     tt = loc_health['TTK'].sum()
-    bars = ax2_1.bar(['Views (Jangkauan)', 'Link Clicks (Minat)', 'TTK (Konversi)'],
-                     [tv, tc, tt], color=['#2196F3', '#FF9800', '#4CAF50'])
-    if tv > 0:
-        ax2_1.set_yscale('log')
-    ax2_1.set_title('Funnel Konversi Keseluruhan', fontweight='bold', fontsize=14)
-    for bar in bars:
-        height = bar.get_height()
-        if height > 0:
-            ax2_1.text(bar.get_x() + bar.get_width()/2., height * 1.2,
-                       f'{int(height):,}', ha='center', va='bottom', fontweight='bold')
+    
+    pct_ctr = (tc / tv) * 100 if tv > 0 else 0
+    pct_cvr = (tt / tc) * 100 if tc > 0 else 0
+    pct_total = (tt / tv) * 100 if tv > 0 else 0
+    
+    period_str = f"{df_aktif.index.min().strftime('%d %b %Y')} - {df_aktif.index.max().strftime('%d %b %Y')}"
+    ax2_1.set_title(f'Alur Konversi Keseluruhan\nPeriode: {period_str}', fontweight='bold', fontsize=16, pad=20)
+    
+    def draw_box(ax, x, y, w, h, title, val, color):
+        box = patches.FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.05", 
+                                     ec="none", fc=color, alpha=0.8)
+        ax.add_patch(box)
+        ax.text(x + w/2, y + h/2 + 0.05, title, ha='center', va='center', color='white', fontweight='bold', fontsize=12)
+        ax.text(x + w/2, y + h/2 - 0.05, f"{int(val):,}", ha='center', va='center', color='white', fontweight='bold', fontsize=14)
+
+    def draw_arrow(ax, x_start, x_end, y, top_text, bottom_text):
+        ax.annotate('', xy=(x_end, y), xytext=(x_start, y),
+                    arrowprops=dict(arrowstyle='simple', color='gray', lw=2))
+        ax.text((x_start + x_end)/2, y + 0.05, top_text, ha='center', va='bottom', fontweight='bold', color='#333333', fontsize=11)
+        ax.text((x_start + x_end)/2, y - 0.05, bottom_text, ha='center', va='top', fontweight='bold', color='#D32F2F', fontsize=14)
+
+    draw_box(ax2_1, 0.05, 0.35, 0.2, 0.3, "1. Views", tv, '#2196F3')
+    draw_box(ax2_1, 0.40, 0.35, 0.2, 0.3, "2. Link Clicks", tc, '#FF9800')
+    draw_box(ax2_1, 0.75, 0.35, 0.2, 0.3, "3. Resi (TTK)", tt, '#4CAF50')
+
+    draw_arrow(ax2_1, 0.26, 0.39, 0.5, "CTR (Daya Tarik)", f"{pct_ctr:.2f}%")
+    draw_arrow(ax2_1, 0.61, 0.74, 0.5, "CVR (Closing)", f"{pct_cvr:.2f}%")
+
+    ax2_1.text(0.5, 0.1, f"Total Konversi Keseluruhan (Views ke Resi): {pct_total:.2f}%", 
+            ha='center', va='center', fontweight='bold', fontsize=12, 
+            bbox=dict(boxstyle="round,pad=0.5", fc="#F5F5F5", ec="#E0E0E0"))
 
     # Scatter CTR vs CVR
     ax2_2 = fig2.add_subplot(gs[0, 1])
@@ -555,10 +668,7 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
                                s=loc_health_clean['Actual_Spend'] / 1000 + 100,
                                c=loc_health_clean['TTK'], cmap='viridis', alpha=0.7,
                                edgecolors='white', linewidth=2)
-        for i, row in loc_health_clean.iterrows():
-            if row['TTK'] > 0:
-                ax2_2.text(row['CTR (%)'], row['CVR (%)'] + 0.5, row['Location'],
-                          fontsize=9, ha='center')
+        annotate_scatter(ax2_2, loc_health_clean[loc_health_clean['TTK'] > 0], 'CTR (%)', 'CVR (%)')
         ax2_2.axvline(avg_ctr, color='r', linestyle='--', alpha=0.5, label='Rata-rata CTR')
         ax2_2.axhline(avg_cvr, color='b', linestyle='--', alpha=0.5, label='Rata-rata CVR')
         ax2_2.set_title('Kesehatan Konten: CTR vs CVR per Lokasi', fontweight='bold', fontsize=14)
@@ -607,10 +717,9 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
                 p_poly = np.poly1d(z)
                 ax2_4.plot(valid_scatter['Link_Clicks'],
                           p_poly(valid_scatter['Link_Clicks']), color='red', linestyle='--')
-        for i, row in loc_health_clean.iterrows():
-            if pd.notna(row['KG']) and row['KG'] > 0:
-                ax2_4.text(row['Link_Clicks'], row['KG'] + (row['KG']*0.05),
-                          row['Location'], fontsize=9, ha='center')
+        valid_kg = loc_health_clean[loc_health_clean['KG'].notna() & (loc_health_clean['KG'] > 0)]
+        if len(valid_kg) > 0:
+            annotate_scatter(ax2_4, valid_kg, 'Link_Clicks', 'KG')
         ax2_4.set_title('Interaksi Iklan vs Volume Pengiriman', fontweight='bold', fontsize=14)
         ax2_4.set_xlabel('Link Clicks (Minat)')
         ax2_4.set_ylabel('Total Berat (KG)')

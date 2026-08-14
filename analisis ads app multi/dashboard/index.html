@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Ads Analytics Dashboard — Wahana Express</title>
+    <meta name="description" content="Dashboard interaktif analisis performa Meta Ads multi-lokasi untuk Wahana Express. Upload Excel, lihat grafik otomatis, filter per Campaign, Lokasi, dan Periode.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<!-- ====== LOADING OVERLAY ====== -->
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p>Memproses data...</p>
+</div>
+
+<!-- ====== VIEW: UPLOAD ====== -->
+<div id="view-upload">
+    <div class="upload-header">
+        <h1>Meta Ads Analytics Dashboard</h1>
+        <p>Wahana Express — Pengiriman Barang</p>
+    </div>
+
+    <div class="upload-dropzone" id="upload-dropzone">
+        <span class="upload-icon">📊</span>
+        <h3>Upload File Excel (.xlsx)</h3>
+        <p>Drag & drop file di sini, atau klik untuk browse</p>
+        <input type="file" id="upload-input" accept=".xlsx,.xls" multiple hidden>
+    </div>
+
+    <p class="upload-hint">
+        Bisa upload 1 atau 2 file sekaligus (Indonesia + Malaysia)
+    </p>
+</div>
+
+<!-- ====== VIEW: DASHBOARD ====== -->
+<div id="view-dashboard">
+
+    <!-- Header -->
+    <header class="dashboard-header">
+        <h1>📊 Meta Ads Analytics Dashboard</h1>
+        <div class="header-right">
+            <span id="file-info"></span>
+            <button class="btn" id="btn-reupload">📁 Upload Baru</button>
+        </div>
+    </header>
+
+    <!-- Period Info -->
+    <div id="period-info"></div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>Campaign</label>
+            <select class="filter-select" id="filter-campaign"></select>
+        </div>
+        <div class="filter-group">
+            <label>Lokasi</label>
+            <select class="filter-select" id="filter-location"></select>
+        </div>
+        <div class="filter-group">
+            <label>Periode</label>
+            <div class="period-pills">
+                <button class="period-pill active" data-period="weekly">Mingguan</button>
+                <button class="period-pill" data-period="monthly">Bulanan</button>
+                <button class="period-pill" data-period="yearly">Tahunan</button>
+            </div>
+        </div>
+        <div class="filter-spacer"></div>
+        <span id="filter-date-range"></span>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="no-data-msg" class="no-data" style="display: none;">
+        Tidak ada data untuk filter yang dipilih.
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card" id="kpi-spend">
+                <div class="kpi-label">Total Spend</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+            <div class="kpi-card" id="kpi-ttk">
+                <div class="kpi-label">Total TTK (Resi)</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+            <div class="kpi-card" id="kpi-kg">
+                <div class="kpi-label">Total KG</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+            <div class="kpi-card" id="kpi-costttk">
+                <div class="kpi-label">Cost per TTK</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+            <div class="kpi-card" id="kpi-ctr">
+                <div class="kpi-label">CTR (Daya Tarik)</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+            <div class="kpi-card" id="kpi-cvr">
+                <div class="kpi-label">CVR (Closing)</div>
+                <div class="kpi-value">-</div>
+                <div class="kpi-trend"></div>
+            </div>
+        </div>
+
+        <!-- Section: Performa Dasar -->
+        <h3 class="section-title">📈 Performa Dasar</h3>
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h4>Total TTK (Resi) per Periode</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-ttk-period"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h4>Total KG Pengiriman per Periode</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-kg-period"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Section: Efisiensi Biaya -->
+        <h3 class="section-title">💰 Efisiensi Biaya</h3>
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h4>Cost per TTK per Lokasi</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-costttk-location"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h4>Cost per TTK per Periode</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-costttk-period"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Section: Kontribusi & Distribusi -->
+        <h3 class="section-title">🏆 Kontribusi & Distribusi</h3>
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h4>Total Kontribusi Resi (TTK) per Lokasi</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-ttk-location"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h4>Distribusi Pengeluaran per Lokasi</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-spend-dist"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Section: Kesehatan Konten -->
+        <h3 class="section-title">🩺 Kesehatan Konten & Interaksi</h3>
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h4>Alur Konversi (Funnel)</h4>
+                <div id="funnel-container"></div>
+            </div>
+            <div class="chart-card">
+                <h4>Kuadran CTR vs CVR per Lokasi</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-quadrant"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Section: Tren & Korelasi -->
+        <h3 class="section-title">📉 Tren & Korelasi</h3>
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h4>Tren Kesehatan Konten (CTR & CVR)</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-trend-health"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h4>Interaksi Iklan vs Volume Pengiriman</h4>
+                <div class="chart-canvas-wrap"><canvas id="chart-clicks-kg"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Section: Detail Lokasi -->
+        <h3 class="section-title">📋 Detail per Lokasi</h3>
+        <div class="table-wrap">
+            <table id="detail-table">
+                <thead>
+                    <tr>
+                        <th>Lokasi</th>
+                        <th data-sort>Spend</th>
+                        <th data-sort>TTK</th>
+                        <th data-sort>KG</th>
+                        <th data-sort>Cost/TTK</th>
+                        <th data-sort>CTR (%)</th>
+                        <th data-sort>CVR (%)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="detail-table-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Section: Rekomendasi -->
+        <h3 class="section-title">💡 Rekomendasi Aksi</h3>
+        <div id="recommendations"></div>
+
+        <!-- Section: Kargo -->
+        <div id="kargo-section"></div>
+
+    </div><!-- /dashboard-content -->
+</div><!-- /view-dashboard -->
+
+<!-- ====== SCRIPTS (CDN) ====== -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+<!-- App Scripts -->
+<script src="js/utils.js"></script>
+<script src="js/data-loader.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

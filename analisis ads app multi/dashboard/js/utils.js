@@ -1,0 +1,177 @@
+// ============================================
+// utils.js — Utility Functions
+// Meta Ads Dashboard - Wahana Express
+// ============================================
+
+/**
+ * Clean currency string (Rp format) to float.
+ * Port dari Python clean_currency()
+ */
+function cleanCurrency(val) {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') return isNaN(val) ? null : val;
+
+    const raw = String(val).trim();
+    if (raw === '' || raw.toLowerCase() === 'nan') return null;
+
+    let s = raw
+        .replace(/Rp/gi, '')
+        .replace(/\s/g, '')
+        .replace(/\u00a0/g, '');
+
+    if (s.includes(',') && s.includes('.')) {
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            s = s.replace(/,/g, '');
+        }
+    } else if (s.includes(',')) {
+        if ((s.match(/,/g) || []).length > 1) {
+            s = s.replace(/,/g, '');
+        } else {
+            const parts = s.split(',');
+            if (parts[1] && parts[1].length === 3) {
+                s = s.replace(',', '');
+            } else {
+                s = s.replace(',', '.');
+            }
+        }
+    }
+
+    const num = parseFloat(s);
+    return isNaN(num) ? null : num;
+}
+
+/**
+ * Parse numeric value from cell (remove commas/spaces).
+ */
+function parseNumeric(val) {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') return isNaN(val) ? null : val;
+    const s = String(val).replace(/,/g, '').replace(/\s/g, '').trim();
+    const num = parseFloat(s);
+    return isNaN(num) ? null : num;
+}
+
+/**
+ * Parse date string dd/mm/yy to Date object.
+ */
+function parseDateDMY(str) {
+    if (!str) return null;
+    const parts = str.split('/');
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    const d = new Date(year, month, day);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Calculate linear trend from array of numbers.
+ * Port dari Python calc_trend()
+ */
+function calcTrend(values) {
+    const valid = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (valid.length < 3) {
+        return { slope: 0, direction: 'Tidak cukup data', pctChange: 0 };
+    }
+    const n = valid.length;
+    const x = Array.from({ length: n }, (_, i) => i);
+    const y = valid;
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.reduce((a, xi, i) => a + xi * y[i], 0);
+    const sumX2 = x.reduce((a, xi) => a + xi * xi, 0);
+    const denom = n * sumX2 - sumX * sumX;
+    if (denom === 0) return { slope: 0, direction: '[STABIL]', pctChange: 0 };
+
+    const slope = (n * sumXY - sumX * sumY) / denom;
+    if (isNaN(slope) || !isFinite(slope)) {
+        return { slope: 0, direction: '[STABIL]', pctChange: 0 };
+    }
+
+    const firstVal = y[0] !== 0 ? y[0] : 1;
+    const pctChange = (slope * n / Math.abs(firstVal)) * 100;
+
+    let direction;
+    if (Math.abs(pctChange) < 5) direction = '[STABIL]';
+    else if (pctChange > 0) direction = '[NAIK]';
+    else direction = '[TURUN]';
+
+    return { slope, direction, pctChange };
+}
+
+// ---- Formatting ----
+
+function formatRp(num) {
+    if (num === null || num === undefined || isNaN(num)) return 'Rp -';
+    const abs = Math.abs(num);
+    if (abs >= 1e9) return `Rp ${(num / 1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `Rp ${(num / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `Rp ${(num / 1e3).toFixed(1)}K`;
+    return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
+}
+
+function formatRpFull(num) {
+    if (num === null || num === undefined || isNaN(num)) return 'Rp -';
+    return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
+}
+
+function formatNum(num) {
+    if (num === null || num === undefined || isNaN(num)) return '-';
+    return Math.round(num).toLocaleString('id-ID');
+}
+
+function formatPct(num, decimals = 2) {
+    if (num === null || num === undefined || isNaN(num)) return '-';
+    return `${num.toFixed(decimals)}%`;
+}
+
+// ---- Colors ----
+
+const COLORS = {
+    blue: '#3b82f6',
+    green: '#10b981',
+    orange: '#f59e0b',
+    purple: '#8b5cf6',
+    red: '#ef4444',
+    pink: '#ec4899',
+    cyan: '#06b6d4',
+    teal: '#14b8a6',
+    indigo: '#6366f1',
+    lime: '#84cc16',
+    palette: [
+        '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444',
+        '#ec4899', '#06b6d4', '#14b8a6', '#6366f1', '#f97316',
+        '#84cc16', '#a855f7', '#f43f5e', '#0ea5e9', '#22c55e',
+        '#eab308', '#d946ef', '#64748b',
+    ],
+};
+
+function getColor(index) {
+    return COLORS.palette[index % COLORS.palette.length];
+}
+
+// ---- Trend Arrow ----
+
+function trendHTML(trend) {
+    if (!trend || trend.direction === 'Tidak cukup data') return '<span class="trend trend-stable">—</span>';
+    const pct = Math.abs(trend.pctChange).toFixed(1);
+    if (trend.direction === '[NAIK]') return `<span class="trend trend-up">▲ ${pct}%</span>`;
+    if (trend.direction === '[TURUN]') return `<span class="trend trend-down">▼ ${pct}%</span>`;
+    return `<span class="trend trend-stable">→ ${pct}%</span>`;
+}
+
+// ---- Helpers ----
+
+function sumField(arr, field) {
+    return arr.reduce((acc, r) => acc + (r[field] || 0), 0);
+}
+
+function safeDiv(a, b) {
+    if (!b || b === 0) return null;
+    const r = a / b;
+    return isFinite(r) ? r : null;
+}
