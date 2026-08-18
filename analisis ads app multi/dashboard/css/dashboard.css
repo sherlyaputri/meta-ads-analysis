@@ -243,16 +243,9 @@ body {
     border-radius: var(--radius);
     margin-bottom: 1.5rem;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 50;
-    scrollbar-width: none; /* Firefox */
-}
-
-.filter-bar::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
 }
 
 .filter-group {
@@ -281,7 +274,7 @@ body {
     font-family: inherit;
     cursor: pointer;
     transition: var(--transition);
-    min-width: 160px;
+    min-width: 140px;
 }
 
 .filter-select:hover, .filter-select:focus {
@@ -298,7 +291,7 @@ body {
 /* ---- Multi-Select Location ---- */
 .multi-select {
     position: relative;
-    min-width: 180px;
+    min-width: 160px;
 }
 
 .multi-select-trigger {
