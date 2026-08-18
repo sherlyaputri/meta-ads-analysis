@@ -172,17 +172,14 @@ function broadcastValues(rows) {
 /**
  * Calculate all metrics from processed (and filtered) data.
  */
-function calculateMetrics(data, period = 'weekly', excludeKargo = true) {
+function calculateMetrics(data, period = 'weekly') {
     const active = data.filter(r => r.isActive);
     if (active.length === 0) return null;
 
-    // Separate kargo rows first
-    const kargoRows = active.filter(r => r.isKargo);
+    // All rows including kargo are processed together
+    const mainRows = active;
 
-    // Filter main rows for KPIs
-    const mainRows = excludeKargo ? active.filter(r => !r.isKargo) : active;
-
-    if (mainRows.length === 0 && kargoRows.length === 0) return null;
+    if (mainRows.length === 0) return null;
 
     const totalSpend = sumField(mainRows, 'actualSpend');
     const totalTTK = sumField(mainRows, 'ttk');
@@ -199,18 +196,10 @@ function calculateMetrics(data, period = 'weekly', excludeKargo = true) {
     const quadrant = analyzeQuadrant(locationData);
     const recommendations = generateRecommendations(locationData, avgCostPerTTK);
 
-    // Kargo data (separate)
-    const kargoStats = kargoRows.length > 0 ? {
-        spend: sumField(kargoRows, 'actualSpend'),
-        ttk: sumField(kargoRows, 'ttk'),
-        kg: sumField(kargoRows, 'kg'),
-        locations: [...new Set(kargoRows.map(r => r.location))],
-    } : null;
-
     return {
         totalSpend, totalTTK, totalKG, totalViews, totalClicks,
         avgCostPerTTK, avgCostPerKG, ctr, cvr,
-        periodData, locationData, quadrant, recommendations, kargoStats,
+        periodData, locationData, quadrant, recommendations,
         trendSpend: calcTrend(periodData.map(p => p.totalSpend)),
         trendTTK: calcTrend(periodData.map(p => p.totalTTK)),
         trendKG: calcTrend(periodData.map(p => p.totalKG)),

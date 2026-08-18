@@ -185,24 +185,17 @@ def load_and_clean(file_path, label=""):
         print(f"   [{label}] Minggu unik: {len(df.index.unique())}")
         n_kargo = df['Is_Kargo'].sum()
         if n_kargo > 0:
-            print(f"   [{label}] Baris Kargo terdeteksi: {n_kargo} (akan dipisahkan)")
+            print(f"   [{label}] Baris Kargo terdeteksi: {n_kargo} (digabung dengan campaign lain)")
 
     return df
 
 
-def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True):
+def analyze_data(df, title_label, output_prefix, output_dir):
     """
     Jalankan analisis lengkap pada DataFrame dan generate laporan + grafik.
+    Semua campaign termasuk Kargo dianalisis bersama.
     """
-    if exclude_kargo and 'Is_Kargo' in df.columns:
-        n_kargo = df['Is_Kargo'].sum()
-        df_main = df[~df['Is_Kargo']].copy()
-        df_kargo_data = df[df['Is_Kargo']].copy()
-        if n_kargo > 0:
-            print(f"   [{title_label}] {n_kargo} baris Kargo dipisahkan dari analisis utama")
-    else:
-        df_main = df.copy()
-        df_kargo_data = pd.DataFrame()
+    df_main = df.copy()
 
     df_aktif = df_main[df_main['Iklan_Aktif']].copy()
 
@@ -343,8 +336,6 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
 
     p(f"\nPeriode Data  : {df_aktif.index.min().strftime('%d %b %Y')} - {df_aktif.index.max().strftime('%d %b %Y')}")
     p(f"Total Minggu  : {len(unique_dates)} minggu")
-    if len(df_kargo_data) > 0:
-        p(f"Catatan       : {len(df_kargo_data)} baris data Kargo dipisahkan dari analisis utama")
 
     # --- BAB 1: KESIMPULAN DARI GRAFIK ANALISIS ---
     p("\n=================================================================")
@@ -478,23 +469,6 @@ def analyze_data(df, title_label, output_prefix, output_dir, exclude_kargo=True)
     if not high_click_high_kg and not high_click_low_kg:
         p("    - Tidak cukup data volume KG untuk menghitung korelasi.")
 
-    # --- F. DATA KARGO (jika ada) ---
-    if len(df_kargo_data) > 0:
-        p("\n" + "-" * 65)
-        p("F. DATA KARGO (DIPISAHKAN)")
-        p("-" * 65)
-        kargo_aktif = df_kargo_data[df_kargo_data['Iklan_Aktif']].copy() if 'Iklan_Aktif' in df_kargo_data.columns else df_kargo_data
-        if len(kargo_aktif) > 0:
-            kargo_spend = kargo_aktif['Actual_Spend'].sum()
-            kargo_ttk = kargo_aktif['TTK'].sum() if 'TTK' in kargo_aktif.columns else 0
-            kargo_kg = kargo_aktif['KG'].sum() if 'KG' in kargo_aktif.columns else 0
-            p(f"  Total Spend Kargo  : Rp {kargo_spend:>12,.0f}")
-            p(f"  Total TTK Kargo    : {kargo_ttk:>12,.0f}")
-            p(f"  Total KG Kargo     : {kargo_kg:>12,.0f}")
-            if kargo_ttk > 0:
-                p(f"  Cost/TTK Kargo     : Rp {kargo_spend / kargo_ttk:>12,.0f}")
-            kargo_locs = kargo_aktif['Location'].unique()
-            p(f"  Lokasi Kargo       : {', '.join(kargo_locs)}")
 
     p("\n" + "=" * 65)
     p("           AKHIR LAPORAN")
@@ -755,7 +729,7 @@ if FILE_INDO.exists():
     df_indo = load_and_clean(FILE_INDO, label="INDONESIA")
     print("\n[2/4] Menganalisis data Indonesia...")
     results['indonesia'] = analyze_data(
-        df_indo, "Indonesia", "indonesia", OUTPUT_DIR, exclude_kargo=True
+        df_indo, "Indonesia", "indonesia", OUTPUT_DIR
     )
 else:
     print(f"[SKIP] File {FILE_INDO.name} tidak ditemukan")
@@ -785,7 +759,7 @@ if FILE_MY.exists():
 
     print("\n[3/4] Menganalisis data Malaysia...")
     results['malaysia'] = analyze_data(
-        df_my_agg, "Malaysia", "malaysia", OUTPUT_DIR, exclude_kargo=False
+        df_my_agg, "Malaysia", "malaysia", OUTPUT_DIR
     )
 else:
     print(f"[SKIP] File {FILE_MY.name} tidak ditemukan")

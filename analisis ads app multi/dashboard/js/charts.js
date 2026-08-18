@@ -64,7 +64,7 @@ function renderTTKPerPeriod(metrics) {
                 datalabels: false,
             },
             scales: {
-                y: { beginAtZero: true, ticks: { callback: v => formatNum(v) } },
+                y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
                 x: { grid: { display: false } }
             }
         },
@@ -98,7 +98,7 @@ function renderKGPerPeriod(metrics) {
                 tooltip: { callbacks: { label: (c) => `KG: ${formatNum(c.raw)}` } },
             },
             scales: {
-                y: { beginAtZero: true, ticks: { callback: v => formatNum(v) } },
+                y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
                 x: { grid: { display: false } }
             }
         },
@@ -158,7 +158,7 @@ function renderCostPerTTKLocation(metrics) {
                 }
             },
             scales: {
-                x: { ticks: { callback: v => formatRp(v) } },
+                x: { grace: '25%', ticks: { callback: v => formatRp(v) } },
                 y: { grid: { display: false } }
             }
         }
@@ -200,6 +200,7 @@ function renderCostPerTTKPeriod(metrics) {
             scales: {
                 y: {
                     min: diff > 0 ? Math.max(0, minV - diff * 0.5) : 0,
+                    grace: '15%',
                     ticks: { callback: v => formatRp(v) }
                 },
                 x: { grid: { display: false } }
@@ -236,7 +237,7 @@ function renderTTKPerLocation(metrics) {
                 tooltip: { callbacks: { label: (c) => `TTK: ${formatNum(c.raw)}` } },
             },
             scales: {
-                y: { beginAtZero: true, ticks: { callback: v => formatNum(v) } },
+                y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
                 x: { grid: { display: false }, ticks: { maxRotation: 45 } }
             }
         },
@@ -397,8 +398,8 @@ function renderQuadrant(metrics) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'CTR (%) → Daya Tarik Iklan', font: { weight: '600' } } },
-                y: { title: { display: true, text: 'CVR (%) → Efektivitas Closing', font: { weight: '600' } } }
+                x: { grace: '10%', title: { display: true, text: 'CTR (%) → Daya Tarik Iklan', font: { weight: '600' } } },
+                y: { grace: '10%', title: { display: true, text: 'CVR (%) → Efektivitas Closing', font: { weight: '600' } } }
             }
         }
     });
@@ -454,13 +455,13 @@ function renderTrendHealth(metrics) {
             },
             scales: {
                 y: {
-                    type: 'linear', position: 'left',
+                    type: 'linear', position: 'left', grace: '10%',
                     title: { display: true, text: 'CTR (%)', color: COLORS.orange, font: { weight: '600' } },
                     ticks: { color: COLORS.orange },
                     grid: { color: 'rgba(0,0,0,0.04)' }
                 },
                 y1: {
-                    type: 'linear', position: 'right',
+                    type: 'linear', position: 'right', grace: '10%',
                     title: { display: true, text: 'CVR (%)', color: COLORS.green, font: { weight: '600' } },
                     ticks: { color: COLORS.green },
                     grid: { drawOnChartArea: false }
@@ -539,8 +540,8 @@ function renderClicksVsKG(metrics) {
                 legend: { display: false },
             },
             scales: {
-                x: { title: { display: true, text: 'Link Clicks (Minat)', font: { weight: '600' } } },
-                y: { title: { display: true, text: 'Total Berat (KG)', font: { weight: '600' } } }
+                x: { grace: '10%', title: { display: true, text: 'Link Clicks (Minat)', font: { weight: '600' } } },
+                y: { grace: '10%', title: { display: true, text: 'Total Berat (KG)', font: { weight: '600' } } }
             }
         }
     });

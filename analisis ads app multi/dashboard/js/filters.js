@@ -1,5 +1,6 @@
 // ============================================
 // filters.js — Filter System
+// Multi-select location + Flatpickr date range
 // ============================================
 
 /**
@@ -22,8 +23,9 @@ function initFilterState(data) {
             period: 'weekly',   // weekly | monthly | yearly
             dateStart: minDate,
             dateEnd: maxDate,
-            excludeKargo: true,
         },
+        _flatpickrStart: null,
+        _flatpickrEnd: null,
     };
 }
 
@@ -38,7 +40,7 @@ function applyFilters(data, sel) {
         filtered = filtered.filter(r => sel.campaigns.includes(r.campaign));
     }
 
-    // Location filter
+    // Location filter (multi-select)
     if (sel.locations.length > 0) {
         filtered = filtered.filter(r => sel.locations.includes(r.location));
     }
@@ -54,7 +56,7 @@ function applyFilters(data, sel) {
  * Populate filter dropdowns from available values.
  */
 function renderFilterDropdowns(state) {
-    // Campaign
+    // Campaign dropdown (unchanged — single select)
     const camSel = document.getElementById('filter-campaign');
     if (camSel) {
         camSel.innerHTML = '<option value="">Semua Campaign</option>';
@@ -66,27 +68,72 @@ function renderFilterDropdowns(state) {
         });
     }
 
-    // Location
-    const locSel = document.getElementById('filter-location');
-    if (locSel) {
-        locSel.innerHTML = '<option value="">Semua Lokasi</option>';
-        state.availableLocations.forEach(l => {
-            const opt = document.createElement('option');
-            opt.value = l;
-            opt.textContent = l;
-            locSel.appendChild(opt);
-        });
-    }
-
-    // Date range display
-    const rangeEl = document.getElementById('filter-date-range');
-    if (rangeEl) {
-        const fmt = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-        rangeEl.textContent = `${fmt(state.dateRange.min)} — ${fmt(state.dateRange.max)}`;
-    }
+    // Multi-select location
+    renderLocationMultiSelect(state.availableLocations, state.selected.locations);
 
     // Period default
     setActivePeriod(state.selected.period);
+
+    // Initialize Flatpickr date pickers
+    initDatePickers(state);
+}
+
+/**
+ * Render multi-select location dropdown options.
+ */
+function renderLocationMultiSelect(locations, selectedLocs) {
+    const container = document.getElementById('ms-options-location');
+    if (!container) return;
+
+    container.innerHTML = '';
+    locations.forEach(loc => {
+        const isChecked = selectedLocs.includes(loc);
+        const item = document.createElement('label');
+        item.className = 'ms-option' + (isChecked ? ' checked' : '');
+        item.innerHTML = `
+            <input type="checkbox" value="${loc}" ${isChecked ? 'checked' : ''}>
+            <span class="ms-checkbox"></span>
+            <span class="ms-option-text">${loc}</span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+/**
+ * Update the trigger display for multi-select.
+ */
+function updateMultiSelectTrigger(selectedLocs) {
+    const trigger = document.getElementById('ms-trigger-location');
+    if (!trigger) return;
+
+    const placeholder = trigger.querySelector('.multi-select-placeholder');
+    if (!placeholder) return;
+
+    if (selectedLocs.length === 0) {
+        placeholder.textContent = 'Semua Lokasi';
+        placeholder.classList.remove('has-selection');
+        trigger.title = 'Semua Lokasi';
+    } else if (selectedLocs.length === 1) {
+        placeholder.textContent = selectedLocs[0];
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedLocs[0];
+    } else if (selectedLocs.length <= 3) {
+        placeholder.textContent = selectedLocs.join(', ');
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedLocs.join(', ');
+    } else {
+        placeholder.textContent = `${selectedLocs.length} lokasi dipilih`;
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedLocs.join(', ');
+    }
+}
+
+/**
+ * Read currently checked locations from multi-select DOM.
+ */
+function readSelectedLocations() {
+    const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]:checked');
+    return [...checkboxes].map(cb => cb.value);
 }
 
 /**
@@ -98,11 +145,16 @@ function readFilters(filterState) {
     const camVal = document.getElementById('filter-campaign')?.value;
     sel.campaigns = camVal ? [camVal] : [];
 
-    const locVal = document.getElementById('filter-location')?.value;
-    sel.locations = locVal ? [locVal] : [];
+    // Multi-select locations
+    sel.locations = readSelectedLocations();
 
-    // Period is set via pill toggle click
-    // DateStart/DateEnd stay as initialized unless changed
+    // Date range from Flatpickr
+    if (filterState._flatpickrStart && filterState._flatpickrStart.selectedDates.length > 0) {
+        sel.dateStart = filterState._flatpickrStart.selectedDates[0];
+    }
+    if (filterState._flatpickrEnd && filterState._flatpickrEnd.selectedDates.length > 0) {
+        sel.dateEnd = filterState._flatpickrEnd.selectedDates[0];
+    }
 
     return sel;
 }
@@ -117,43 +169,63 @@ function setActivePeriod(period) {
 }
 
 /**
- * Update the location dropdown options based on the selected campaign.
+ * Initialize Flatpickr date pickers.
  */
-function updateLocationDropdown(filterState, rawData) {
-    const selCam = filterState.selected.campaigns[0];
-    const locSel = document.getElementById('filter-location');
-    if (!locSel) return;
+function initDatePickers(state) {
+    const startInput = document.getElementById('filter-date-start');
+    const endInput = document.getElementById('filter-date-end');
+    if (!startInput || !endInput) return;
 
-    // Preserve currently selected location (if any)
-    const currentLoc = locSel.value;
+    const fpConfig = {
+        dateFormat: 'd/m/Y',
+        minDate: state.dateRange.min,
+        maxDate: state.dateRange.max,
+        disableMobile: true,
+        locale: {
+            firstDayOfWeek: 1,
+            weekdays: {
+                shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+            },
+            months: {
+                shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'],
+                longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+            },
+        },
+    };
+
+    state._flatpickrStart = flatpickr(startInput, {
+        ...fpConfig,
+        defaultDate: state.dateRange.min,
+    });
+
+    state._flatpickrEnd = flatpickr(endInput, {
+        ...fpConfig,
+        defaultDate: state.dateRange.max,
+    });
+}
+
+/**
+ * Update the location multi-select options based on the selected campaign.
+ */
+function updateLocationMultiSelect(filterState, rawData) {
+    const selCam = filterState.selected.campaigns[0];
 
     let validLocations;
     if (selCam) {
-        // If a campaign is selected, only show locations that have data for this campaign
         const camData = rawData.filter(r => r.campaign === selCam);
         validLocations = [...new Set(camData.map(r => r.location))].sort();
     } else {
-        // Otherwise show all available locations
         validLocations = filterState.availableLocations;
     }
 
-    // Rebuild options
-    locSel.innerHTML = '<option value="">Semua Lokasi</option>';
-    validLocations.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l;
-        opt.textContent = l;
-        locSel.appendChild(opt);
-    });
+    // Keep only currently selected locations that are still valid
+    const currentSelected = filterState.selected.locations.filter(l => validLocations.includes(l));
+    filterState.selected.locations = currentSelected;
 
-    // Restore previous selection if it's still valid
-    if (validLocations.includes(currentLoc)) {
-        locSel.value = currentLoc;
-    } else {
-        // If the previously selected location is no longer valid, clear it
-        locSel.value = "";
-        filterState.selected.locations = [];
-    }
+    // Re-render options
+    renderLocationMultiSelect(validLocations, currentSelected);
+    updateMultiSelectTrigger(currentSelected);
 }
 
 /**
@@ -165,19 +237,112 @@ function bindFilterEvents(filterState, rawData, onChange) {
     if (camEl) {
         camEl.addEventListener('change', () => {
             filterState.selected = readFilters(filterState);
-            updateLocationDropdown(filterState, rawData);
-            // Need to read again in case location was cleared
+            updateLocationMultiSelect(filterState, rawData);
             filterState.selected = readFilters(filterState);
             onChange();
         });
     }
 
-    // Location dropdown
-    const locEl = document.getElementById('filter-location');
-    if (locEl) {
-        locEl.addEventListener('change', () => {
-            filterState.selected = readFilters(filterState);
+    // Multi-select location: toggle dropdown
+    const trigger = document.getElementById('ms-trigger-location');
+    const dropdown = document.getElementById('ms-dropdown-location');
+    const multiSelect = document.getElementById('multi-select-location');
+
+    if (trigger && dropdown) {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            dropdown.classList.toggle('open', !isOpen);
+            multiSelect?.classList.toggle('open', !isOpen);
+            if (!isOpen) {
+                const searchInput = document.getElementById('ms-search-location');
+                if (searchInput) { searchInput.value = ''; filterLocationOptions(''); searchInput.focus(); }
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!multiSelect?.contains(e.target)) {
+                dropdown.classList.remove('open');
+                multiSelect?.classList.remove('open');
+            }
+        });
+    }
+
+    // Multi-select: checkbox change
+    const optionsContainer = document.getElementById('ms-options-location');
+    if (optionsContainer) {
+        optionsContainer.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                const label = e.target.closest('.ms-option');
+                if (label) label.classList.toggle('checked', e.target.checked);
+                filterState.selected.locations = readSelectedLocations();
+                updateMultiSelectTrigger(filterState.selected.locations);
+                onChange();
+            }
+        });
+    }
+
+    // Multi-select: search filter
+    const searchInput = document.getElementById('ms-search-location');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            filterLocationOptions(e.target.value);
+        });
+        // Prevent dropdown close when clicking search
+        searchInput.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // Multi-select: Select All / Clear All
+    const selectAllBtn = document.getElementById('ms-select-all');
+    const clearAllBtn = document.getElementById('ms-clear-all');
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                // Only select visible (non-hidden) options
+                if (!cb.closest('.ms-option').classList.contains('hidden')) {
+                    cb.checked = true;
+                    cb.closest('.ms-option').classList.add('checked');
+                }
+            });
+            filterState.selected.locations = readSelectedLocations();
+            updateMultiSelectTrigger(filterState.selected.locations);
             onChange();
+        });
+    }
+
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                cb.closest('.ms-option').classList.remove('checked');
+            });
+            filterState.selected.locations = [];
+            updateMultiSelectTrigger([]);
+            onChange();
+        });
+    }
+
+    // Flatpickr date change events
+    if (filterState._flatpickrStart) {
+        filterState._flatpickrStart.config.onChange.push((selectedDates) => {
+            if (selectedDates.length > 0) {
+                filterState.selected.dateStart = selectedDates[0];
+                onChange();
+            }
+        });
+    }
+    if (filterState._flatpickrEnd) {
+        filterState._flatpickrEnd.config.onChange.push((selectedDates) => {
+            if (selectedDates.length > 0) {
+                filterState.selected.dateEnd = selectedDates[0];
+                onChange();
+            }
         });
     }
 
@@ -188,5 +353,17 @@ function bindFilterEvents(filterState, rawData, onChange) {
             setActivePeriod(btn.dataset.period);
             onChange();
         });
+    });
+}
+
+/**
+ * Filter location options in multi-select by search text.
+ */
+function filterLocationOptions(searchText) {
+    const query = searchText.toLowerCase().trim();
+    const options = document.querySelectorAll('#ms-options-location .ms-option');
+    options.forEach(opt => {
+        const text = opt.querySelector('.ms-option-text')?.textContent.toLowerCase() || '';
+        opt.classList.toggle('hidden', query !== '' && !text.includes(query));
     });
 }

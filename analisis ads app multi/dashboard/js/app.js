@@ -97,8 +97,7 @@ function onFilterChange() {
     const sel = APP.filterState.selected;
     const filtered = applyFilters(APP.rawData, sel);
     
-    const shouldExcludeKargo = sel.campaigns.length === 0 && sel.excludeKargo;
-    const metrics = calculateMetrics(filtered, sel.period, shouldExcludeKargo);
+    const metrics = calculateMetrics(filtered, sel.period);
     APP.metrics = metrics;
 
     if (!metrics) {
@@ -115,7 +114,6 @@ function onFilterChange() {
     renderAllCharts(metrics);
     renderDetailTable(metrics);
     renderRecommendations(metrics);
-    renderKargoSection(metrics);
 }
 
 // ---- KPI Cards ----
@@ -229,30 +227,7 @@ function renderRecommendations(metrics) {
     }).join('');
 }
 
-// ---- Kargo Section ----
 
-function renderKargoSection(metrics) {
-    const el = document.getElementById('kargo-section');
-    if (!el) return;
-
-    if (!metrics.kargoStats) {
-        el.style.display = 'none';
-        return;
-    }
-
-    el.style.display = 'block';
-    const k = metrics.kargoStats;
-    el.innerHTML = `
-        <h3 class="section-title">📦 Data Kargo (Dipisahkan)</h3>
-        <div class="kargo-grid">
-            <div class="kargo-item"><span class="kargo-label">Spend</span><span class="kargo-val">${formatRp(k.spend)}</span></div>
-            <div class="kargo-item"><span class="kargo-label">TTK</span><span class="kargo-val">${formatNum(k.ttk)}</span></div>
-            <div class="kargo-item"><span class="kargo-label">KG</span><span class="kargo-val">${formatNum(k.kg)}</span></div>
-            <div class="kargo-item"><span class="kargo-label">Cost/TTK</span><span class="kargo-val">${k.ttk > 0 ? formatRpFull(k.spend / k.ttk) : '-'}</span></div>
-            <div class="kargo-item kargo-locs"><span class="kargo-label">Lokasi</span><span class="kargo-val">${k.locations.join(', ')}</span></div>
-        </div>
-    `;
-}
 
 // ---- View Switching ----
 
