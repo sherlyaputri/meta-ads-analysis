@@ -491,40 +491,7 @@ body {
     border-color: var(--red);
 }
 
-.period-pills {
-    display: flex;
-    gap: 0;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 1px solid var(--border);
-}
 
-.period-pill {
-    padding: 0.45rem 1rem;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-    font-family: inherit;
-}
-
-.period-pill + .period-pill {
-    border-left: 1px solid var(--border);
-}
-
-.period-pill:hover {
-    color: var(--text-primary);
-    background: rgba(0,0,0,0.04);
-}
-
-.period-pill.active {
-    background: var(--blue);
-    color: white;
-    font-weight: 600;
-}
 
 /* ---- Date Range Picker ---- */
 .date-range-wrap {

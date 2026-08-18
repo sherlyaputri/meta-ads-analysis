@@ -155,18 +155,13 @@ function readFilters(filterState) {
     if (filterState._flatpickrEnd && filterState._flatpickrEnd.selectedDates.length > 0) {
         sel.dateEnd = filterState._flatpickrEnd.selectedDates[0];
     }
+    const periodVal = document.getElementById('filter-period')?.value;
+    if (periodVal) sel.period = periodVal;
 
     return sel;
 }
 
-/**
- * Highlight the active period pill.
- */
-function setActivePeriod(period) {
-    document.querySelectorAll('.period-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.period === period);
-    });
-}
+
 
 /**
  * Initialize Flatpickr date pickers.
@@ -346,14 +341,14 @@ function bindFilterEvents(filterState, rawData, onChange) {
         });
     }
 
-    // Period pills
-    document.querySelectorAll('.period-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterState.selected.period = btn.dataset.period;
-            setActivePeriod(btn.dataset.period);
+    // Period select
+    const periodSel = document.getElementById('filter-period');
+    if (periodSel) {
+        periodSel.addEventListener('change', () => {
+            filterState.selected.period = periodSel.value;
             onChange();
         });
-    });
+    }
 }
 
 /**
