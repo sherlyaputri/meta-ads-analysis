@@ -71,9 +71,8 @@ function renderFilterDropdowns(state) {
     // Multi-select location
     renderLocationMultiSelect(state.availableLocations, state.selected.locations);
 
-    // Period default
-    setActivePeriod(state.selected.period);
-
+    const periodSel = document.getElementById('filter-period');
+    if (periodSel) periodSel.value = state.selected.period;
     // Initialize Flatpickr date pickers
     initDatePickers(state);
 }
