@@ -242,10 +242,17 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 1.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 50;
+    scrollbar-width: none; /* Firefox */
+}
+
+.filter-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .filter-group {
