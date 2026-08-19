@@ -242,7 +242,7 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 1.5rem;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     position: sticky;
     top: 0;
     z-index: 50;
