@@ -234,6 +234,16 @@ function aggregateByPeriod(data, period) {
             const k = sumField(g.rows, 'kg');
             const v = sumField(g.rows, 'views');
             const c = sumField(g.rows, 'linkClicks');
+            
+            const locationBreakdown = {};
+            g.rows.forEach(r => {
+                if (!locationBreakdown[r.location]) {
+                    locationBreakdown[r.location] = { ttk: 0, kg: 0 };
+                }
+                locationBreakdown[r.location].ttk += (r.ttk || 0);
+                locationBreakdown[r.location].kg += (r.kg || 0);
+            });
+
             return {
                 label: periodLabel(g.key, period),
                 key: g.key,
@@ -242,6 +252,7 @@ function aggregateByPeriod(data, period) {
                 costPerKG: safeDiv(s, k),
                 ctr: safeDiv(c, v) != null ? safeDiv(c, v) * 100 : null,
                 cvr: safeDiv(t, c) != null ? safeDiv(t, c) * 100 : null,
+                locationBreakdown: locationBreakdown,
             };
         });
 }

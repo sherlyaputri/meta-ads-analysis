@@ -60,7 +60,25 @@ function renderTTKPerPeriod(metrics) {
         options: {
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (c) => `TTK: ${formatNum(c.raw)}` } },
+                tooltip: {
+                    callbacks: {
+                        label: (c) => `TTK: ${formatNum(c.raw)}`,
+                        afterBody: (context) => {
+                            const dataIndex = context[0].dataIndex;
+                            const breakdown = metrics.periodData[dataIndex].locationBreakdown;
+                            if (!breakdown || Object.keys(breakdown).length <= 1) return [];
+                            
+                            const lines = ['', 'Breakdown Lokasi:'];
+                            const sortedLocs = Object.keys(breakdown).sort((a,b) => breakdown[b].ttk - breakdown[a].ttk);
+                            sortedLocs.forEach(loc => {
+                                if (breakdown[loc].ttk > 0) {
+                                    lines.push(`• ${loc}: ${formatNum(breakdown[loc].ttk)}`);
+                                }
+                            });
+                            return lines;
+                        }
+                    }
+                },
                 datalabels: false,
             },
             scales: {
@@ -95,7 +113,25 @@ function renderKGPerPeriod(metrics) {
         options: {
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (c) => `KG: ${formatNum(c.raw)}` } },
+                tooltip: {
+                    callbacks: {
+                        label: (c) => `KG: ${formatNum(c.raw)}`,
+                        afterBody: (context) => {
+                            const dataIndex = context[0].dataIndex;
+                            const breakdown = metrics.periodData[dataIndex].locationBreakdown;
+                            if (!breakdown || Object.keys(breakdown).length <= 1) return [];
+                            
+                            const lines = ['', 'Breakdown Lokasi:'];
+                            const sortedLocs = Object.keys(breakdown).sort((a,b) => breakdown[b].kg - breakdown[a].kg);
+                            sortedLocs.forEach(loc => {
+                                if (breakdown[loc].kg > 0) {
+                                    lines.push(`• ${loc}: ${formatNum(breakdown[loc].kg)}`);
+                                }
+                            });
+                            return lines;
+                        }
+                    }
+                },
             },
             scales: {
                 y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
