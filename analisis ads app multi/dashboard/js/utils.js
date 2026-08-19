@@ -108,9 +108,9 @@ function calcTrend(values) {
 function formatRp(num) {
     if (num === null || num === undefined || isNaN(num)) return 'Rp -';
     const abs = Math.abs(num);
-    if (abs >= 1e9) return `Rp ${(num / 1e9).toFixed(1)}B`;
-    if (abs >= 1e6) return `Rp ${(num / 1e6).toFixed(1)}M`;
-    if (abs >= 1e3) return `Rp ${(num / 1e3).toFixed(1)}K`;
+    if (abs >= 1e9) return `Rp ${(num / 1e9).toFixed(1)} M`;
+    if (abs >= 1e6) return `Rp ${(num / 1e6).toFixed(1)} Jt`;
+    if (abs >= 1e3) return `Rp ${(num / 1e3).toFixed(1)} Rb`;
     return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
 }
 

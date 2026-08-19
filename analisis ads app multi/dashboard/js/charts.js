@@ -67,9 +67,9 @@ function renderTTKPerPeriod(metrics) {
                             const dataIndex = context[0].dataIndex;
                             const breakdown = metrics.periodData[dataIndex].locationBreakdown;
                             if (!breakdown || Object.keys(breakdown).length <= 1) return [];
-                            
+
                             const lines = ['', 'Breakdown Lokasi:'];
-                            const sortedLocs = Object.keys(breakdown).sort((a,b) => breakdown[b].ttk - breakdown[a].ttk);
+                            const sortedLocs = Object.keys(breakdown).sort((a, b) => breakdown[b].ttk - breakdown[a].ttk);
                             sortedLocs.forEach(loc => {
                                 if (breakdown[loc].ttk > 0) {
                                     lines.push(`• ${loc}: ${formatNum(breakdown[loc].ttk)}`);
@@ -120,9 +120,9 @@ function renderKGPerPeriod(metrics) {
                             const dataIndex = context[0].dataIndex;
                             const breakdown = metrics.periodData[dataIndex].locationBreakdown;
                             if (!breakdown || Object.keys(breakdown).length <= 1) return [];
-                            
+
                             const lines = ['', 'Breakdown Lokasi:'];
-                            const sortedLocs = Object.keys(breakdown).sort((a,b) => breakdown[b].kg - breakdown[a].kg);
+                            const sortedLocs = Object.keys(breakdown).sort((a, b) => breakdown[b].kg - breakdown[a].kg);
                             sortedLocs.forEach(loc => {
                                 if (breakdown[loc].kg > 0) {
                                     lines.push(`• ${loc}: ${formatNum(breakdown[loc].kg)}`);
@@ -195,9 +195,10 @@ function renderCostPerTTKLocation(metrics) {
             },
             scales: {
                 x: { grace: '25%', ticks: { callback: v => formatRp(v) } },
-                y: { grid: { display: false } }
+                y: { grid: { display: false }, ticks: { autoSkip: false } }
             }
-        }
+        },
+        plugins: [dataLabelPlugin('#475569', v => formatRp(v))]
     });
 }
 
@@ -265,6 +266,8 @@ function renderTTKPerLocation(metrics) {
                 borderColor: sorted.map((_, i) => getColor(i)),
                 borderWidth: 1,
                 borderRadius: 6,
+                barPercentage: 0.6,
+                categoryPercentage: 0.8
             }]
         },
         options: {
@@ -274,10 +277,10 @@ function renderTTKPerLocation(metrics) {
             },
             scales: {
                 y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
-                x: { grid: { display: false }, ticks: { maxRotation: 45 } }
+                x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, autoSkip: false } }
             }
         },
-        plugins: [dataLabelPlugin('#e2e8f0')]
+        plugins: [dataLabelPlugin('#1e293b')]
     });
 }
 
@@ -617,7 +620,7 @@ function dataLabelPlugin(color, formatter) {
                 const meta = chart.getDatasetMeta(di);
                 meta.data.forEach((bar, i) => {
                     const val = ds.data[i];
-                    if (val === null || val === undefined || val === 0) return;
+                    if (val === null || val === undefined) return;
                     const text = formatter ? formatter(val) : formatNum(val);
                     ctx.save();
                     ctx.font = 'bold 11px Inter, sans-serif';

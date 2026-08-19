@@ -165,14 +165,14 @@ function renderDetailTable(metrics) {
         else { statusClass = 'status-neutral'; statusText = '—'; }
 
         return `<tr>
-            <td class="td-location">${loc.location}</td>
-            <td class="td-number">${formatRp(loc.totalSpend)}</td>
-            <td class="td-number">${formatNum(loc.totalTTK)}</td>
-            <td class="td-number">${formatNum(loc.totalKG)}</td>
-            <td class="td-number">${loc.costPerTTK != null ? formatRpFull(loc.costPerTTK) : '-'}</td>
-            <td class="td-number">${loc.ctr != null ? formatPct(loc.ctr) : '-'}</td>
-            <td class="td-number">${loc.cvr != null ? formatPct(loc.cvr) : '-'}</td>
-            <td class="td-status"><span class="${statusClass}">${statusText}</span></td>
+            <td class="td-location" data-val="${loc.location}">${loc.location}</td>
+            <td class="td-number" data-val="${loc.totalSpend || 0}">${formatRp(loc.totalSpend)}</td>
+            <td class="td-number" data-val="${loc.totalTTK || 0}">${formatNum(loc.totalTTK)}</td>
+            <td class="td-number" data-val="${loc.totalKG || 0}">${formatNum(loc.totalKG)}</td>
+            <td class="td-number" data-val="${loc.costPerTTK || 0}">${loc.costPerTTK != null ? formatRpFull(loc.costPerTTK) : '-'}</td>
+            <td class="td-number" data-val="${loc.ctr || 0}">${loc.ctr != null ? formatPct(loc.ctr) : '-'}</td>
+            <td class="td-number" data-val="${loc.cvr || 0}">${loc.cvr != null ? formatPct(loc.cvr) : '-'}</td>
+            <td class="td-status" data-val="${statusText}"><span class="${statusClass}">${statusText}</span></td>
         </tr>`;
     }).join('');
 
@@ -191,11 +191,21 @@ function setupTableSort() {
             th.dataset.dir = asc ? 'asc' : 'desc';
 
             rows.sort((a, b) => {
-                let va = a.cells[col].textContent.replace(/[^\d.-]/g, '');
-                let vb = b.cells[col].textContent.replace(/[^\d.-]/g, '');
-                va = parseFloat(va) || 0;
-                vb = parseFloat(vb) || 0;
-                return asc ? va - vb : vb - va;
+                const va = a.cells[col].getAttribute('data-val');
+                const vb = b.cells[col].getAttribute('data-val');
+                
+                const numA = parseFloat(va);
+                const numB = parseFloat(vb);
+                
+                // Cek jika datanya adalah angka (misal untuk metrik spend, ttk, dll)
+                if (!isNaN(numA) && !isNaN(numB) && col !== 0) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                
+                // Fallback untuk string (misal lokasi)
+                const strA = String(va || '');
+                const strB = String(vb || '');
+                return asc ? strA.localeCompare(strB) : strB.localeCompare(strA);
             });
 
             rows.forEach(r => tbody.appendChild(r));
