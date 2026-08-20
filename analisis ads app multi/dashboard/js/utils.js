@@ -150,6 +150,39 @@ const COLORS = {
     ],
 };
 
+const PALETTES = {
+    // Sky Blue: Bersih, profesional, sangat standar untuk data
+    blue: ['#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'],
+    
+    // Teal / Tosca: Pengganti oranye yang sangat populer di dashboard modern (premium & fresh)
+    teal: ['#5eead4', '#2dd4bf', '#14b8a6', '#0f766e', '#115e59'],
+    
+    // True Orange: Oranye terang ke merah (Coral), menghindari warna coklat kotor
+    orange: ['#fdba74', '#fb923c', '#f97316', '#ea580c', '#c2410c'],
+    
+    // Emerald Green: Hijau segar yang elegan
+    green: ['#6ee7b7', '#34d399', '#10b981', '#059669', '#047857'],
+    
+    // Rose / Soft Red: Merah elegan yang tidak terlalu mencolok seperti warna error
+    red: ['#fda4af', '#fb7185', '#f43f5e', '#e11d48', '#be123c'],
+    
+    // Violet / Deep Purple: Ungu korporat yang mewah
+    purple: ['#c4b5fd', '#a78bfa', '#8b5cf6', '#6d28d9', '#4c1d95'],
+    
+    // Indigo: Biru keunguan
+    indigo: ['#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#4338ca']
+};
+
+function getPaletteColor(paletteName, value, minVal, maxVal) {
+    const palette = PALETTES[paletteName];
+    if (!palette) return COLORS[paletteName] || '#333';
+    if (maxVal === minVal) return palette[Math.floor(palette.length / 2)];
+    const ratio = Math.max(0, Math.min(1, (value - minVal) / (maxVal - minVal)));
+    let index = Math.floor(ratio * palette.length);
+    if (index >= palette.length) index = palette.length - 1;
+    return palette[index];
+}
+
 function getColor(index) {
     return COLORS.palette[index % COLORS.palette.length];
 }

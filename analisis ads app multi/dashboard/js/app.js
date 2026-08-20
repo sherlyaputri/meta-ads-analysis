@@ -159,10 +159,10 @@ function renderDetailTable(metrics) {
     tbody.innerHTML = sorted.map(loc => {
         let statusClass = '';
         let statusText = '';
-        if (q.stars.includes(loc.location)) { statusClass = 'status-star'; statusText = '⭐ Bintang'; }
-        else if (q.leaky.includes(loc.location)) { statusClass = 'status-warn'; statusText = '⚠️ Bocor CS'; }
-        else if (q.poorContent.includes(loc.location)) { statusClass = 'status-info'; statusText = '📝 Konten'; }
-        else { statusClass = 'status-neutral'; statusText = '—'; }
+        if (q.stars.includes(loc.location)) { statusClass = 'status-star'; statusText = 'Optimal (Minat & Closing Tinggi)'; }
+        else if (q.leaky.includes(loc.location)) { statusClass = 'status-warn'; statusText = 'Hanya Sekadar Klik (Tidak Jadi Kirim)'; }
+        else if (q.poorContent.includes(loc.location)) { statusClass = 'status-info'; statusText = 'Konten Lemah (Klik Dikit, Closing Tinggi)'; }
+        else { statusClass = 'status-neutral'; statusText = 'Kurang (Minat & Closing Rendah)'; }
 
         return `<tr>
             <td class="td-location" data-val="${loc.location}">${loc.location}</td>

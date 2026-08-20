@@ -44,15 +44,20 @@ function renderTTKPerPeriod(metrics) {
     if (chartInstances['ttk-period']) chartInstances['ttk-period'].destroy();
 
     const pd = metrics.periodData;
+    const dataVals = pd.map(p => p.totalTTK);
+    const maxVal = Math.max(...dataVals, 1);
+    const minVal = Math.min(...dataVals);
+    const diff = maxVal - minVal;
+
     chartInstances['ttk-period'] = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: pd.map(p => p.label),
             datasets: [{
                 label: 'Total TTK (Resi)',
-                data: pd.map(p => p.totalTTK),
-                backgroundColor: hexAlpha(COLORS.blue, 0.8),
-                borderColor: COLORS.blue,
+                data: dataVals,
+                backgroundColor: dataVals.map(v => getPaletteColor('blue', v, minVal, maxVal)),
+                borderColor: dataVals.map(v => getPaletteColor('blue', v, minVal, maxVal)),
                 borderWidth: 1,
                 borderRadius: 6,
             }]
@@ -97,15 +102,20 @@ function renderKGPerPeriod(metrics) {
     if (chartInstances['kg-period']) chartInstances['kg-period'].destroy();
 
     const pd = metrics.periodData;
+    const dataVals = pd.map(p => p.totalKG);
+    const maxVal = Math.max(...dataVals, 1);
+    const minVal = Math.min(...dataVals);
+    const diff = maxVal - minVal;
+
     chartInstances['kg-period'] = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: pd.map(p => p.label),
             datasets: [{
                 label: 'Total KG',
-                data: pd.map(p => p.totalKG),
-                backgroundColor: hexAlpha(COLORS.orange, 0.8),
-                borderColor: COLORS.orange,
+                data: dataVals,
+                backgroundColor: dataVals.map(v => getPaletteColor('orange', v, minVal, maxVal)),
+                borderColor: dataVals.map(v => getPaletteColor('orange', v, minVal, maxVal)),
                 borderWidth: 1,
                 borderRadius: 6,
             }]
@@ -155,6 +165,10 @@ function renderCostPerTTKLocation(metrics) {
     if (sorted.length === 0) return;
 
     const avg = metrics.avgCostPerTTK;
+    const dataVals = sorted.map(l => l.costPerTTK);
+    const maxVal = Math.max(...dataVals, 1);
+    const minVal = Math.min(...dataVals);
+    const diff = maxVal - minVal;
 
     chartInstances['costttk-loc'] = new Chart(ctx, {
         type: 'bar',
@@ -162,9 +176,17 @@ function renderCostPerTTKLocation(metrics) {
             labels: sorted.map(l => l.location),
             datasets: [{
                 label: 'Cost per TTK',
-                data: sorted.map(l => l.costPerTTK),
-                backgroundColor: sorted.map(l => l.costPerTTK > avg * 1.5 ? hexAlpha(COLORS.red, 0.7) : hexAlpha(COLORS.green, 0.7)),
-                borderColor: sorted.map(l => l.costPerTTK > avg * 1.5 ? COLORS.red : COLORS.green),
+                data: dataVals,
+                backgroundColor: sorted.map(l => {
+                    return l.costPerTTK > avg * 1.5 
+                        ? getPaletteColor('red', l.costPerTTK, minVal, maxVal) 
+                        : getPaletteColor('green', l.costPerTTK, minVal, maxVal);
+                }),
+                borderColor: sorted.map(l => {
+                    return l.costPerTTK > avg * 1.5 
+                        ? getPaletteColor('red', l.costPerTTK, minVal, maxVal) 
+                        : getPaletteColor('green', l.costPerTTK, minVal, maxVal);
+                }),
                 borderWidth: 1,
                 borderRadius: 4,
             }]
@@ -215,6 +237,7 @@ function renderCostPerTTKPeriod(metrics) {
     const minV = Math.min(...values);
     const maxV = Math.max(...values);
     const diff = maxV - minV;
+    const absMaxVal = Math.max(...values, 1);
 
     chartInstances['costttk-period'] = new Chart(ctx, {
         type: 'bar',
@@ -223,8 +246,8 @@ function renderCostPerTTKPeriod(metrics) {
             datasets: [{
                 label: 'Cost per TTK',
                 data: values,
-                backgroundColor: hexAlpha(COLORS.purple, 0.8),
-                borderColor: COLORS.purple,
+                backgroundColor: values.map(v => getPaletteColor('purple', v, minV, maxV)),
+                borderColor: values.map(v => getPaletteColor('purple', v, minV, maxV)),
                 borderWidth: 1,
                 borderRadius: 6,
             }]
@@ -254,6 +277,10 @@ function renderTTKPerLocation(metrics) {
     if (chartInstances['ttk-loc']) chartInstances['ttk-loc'].destroy();
 
     const sorted = [...metrics.locationData].sort((a, b) => b.totalTTK - a.totalTTK);
+    const dataVals = sorted.map(l => l.totalTTK);
+    const maxVal = Math.max(...dataVals, 1);
+    const minVal = Math.min(...dataVals);
+    const diff = maxVal - minVal;
 
     chartInstances['ttk-loc'] = new Chart(ctx, {
         type: 'bar',
@@ -261,9 +288,9 @@ function renderTTKPerLocation(metrics) {
             labels: sorted.map(l => l.location),
             datasets: [{
                 label: 'Total TTK',
-                data: sorted.map(l => l.totalTTK),
-                backgroundColor: sorted.map((_, i) => hexAlpha(getColor(i), 0.75)),
-                borderColor: sorted.map((_, i) => getColor(i)),
+                data: dataVals,
+                backgroundColor: dataVals.map(v => getPaletteColor('indigo', v, minVal, maxVal)),
+                borderColor: dataVals.map(v => getPaletteColor('indigo', v, minVal, maxVal)),
                 borderWidth: 1,
                 borderRadius: 6,
                 barPercentage: 0.6,
@@ -440,7 +467,8 @@ function renderQuadrant(metrics) {
                 x: { grace: '10%', title: { display: true, text: 'CTR (%) → Daya Tarik Iklan', font: { weight: '600' } } },
                 y: { grace: '10%', title: { display: true, text: 'CVR (%) → Efektivitas Closing', font: { weight: '600' } } }
             }
-        }
+        },
+        plugins: [calloutLabelPlugin()]
     });
 }
 
@@ -638,6 +666,79 @@ function dataLabelPlugin(color, formatter) {
                     ctx.restore();
                 });
             });
+        }
+    };
+}
+
+/**
+ * Inline plugin for Callout Labels with lines for Quadrant (Bubble) Chart
+ */
+function calloutLabelPlugin() {
+    return {
+        id: 'calloutLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            const datasets = chart.data.datasets;
+            
+            const points = [];
+            datasets.forEach((ds, di) => {
+                const meta = chart.getDatasetMeta(di);
+                if (meta.hidden) return;
+                meta.data.forEach((element, i) => {
+                    const d = ds.data[i];
+                    if (!d || d.x == null || d.y == null) return;
+                    points.push({
+                        x: element.x,
+                        y: element.y,
+                        radius: element.options.radius || 0,
+                        label: d.label,
+                        color: ds.borderColor[i] || ds.borderColor || '#333'
+                    });
+                });
+            });
+
+            if (points.length === 0) return;
+
+            ctx.save();
+            ctx.font = '600 10.5px Inter, sans-serif';
+            ctx.textBaseline = 'middle';
+            
+            const distance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            
+            points.forEach((p) => {
+                const cluster = points.filter(other => distance(p, other) < 45);
+                
+                let angle = -Math.PI / 4; 
+                let distanceOffset = p.radius + 15;
+                
+                if (cluster.length > 1) {
+                    const idx = cluster.indexOf(p);
+                    // Golden ratio distribution
+                    angle = idx * 2.39996 - Math.PI/2;
+                    distanceOffset = p.radius + 15 + (idx % 3) * 8; 
+                }
+                
+                const labelX = p.x + Math.cos(angle) * distanceOffset;
+                const labelY = p.y + Math.sin(angle) * distanceOffset;
+                
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(angle) * (p.radius + 2), p.y + Math.sin(angle) * (p.radius + 2));
+                ctx.lineTo(labelX, labelY);
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = (Math.cos(angle) > 0) ? 'left' : 'right';
+                const textX = labelX + (Math.cos(angle) > 0 ? 4 : -4);
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.lineWidth = 3;
+                ctx.strokeText(p.label, textX, labelY);
+                ctx.fillText(p.label, textX, labelY);
+            });
+            
+            ctx.restore();
         }
     };
 }
