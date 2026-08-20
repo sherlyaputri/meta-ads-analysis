@@ -63,7 +63,23 @@
         <div class="filter-bar">
             <div class="filter-group">
                 <label>Campaign</label>
-                <select class="filter-select" id="filter-campaign"></select>
+                <div class="multi-select" id="multi-select-campaign">
+                    <div class="multi-select-trigger" id="ms-trigger-campaign">
+                        <span class="multi-select-placeholder">Semua Campaign</span>
+                        <span class="multi-select-arrow">▾</span>
+                    </div>
+                    <div class="multi-select-dropdown" id="ms-dropdown-campaign">
+                        <div class="multi-select-search-wrap">
+                            <input type="text" class="multi-select-search" id="ms-search-campaign"
+                                placeholder="Cari campaign..." autocomplete="off">
+                        </div>
+                        <div class="multi-select-options" id="ms-options-campaign"></div>
+                        <div class="multi-select-footer">
+                            <button class="ms-btn ms-btn-all" id="ms-select-all-campaign">Pilih Semua</button>
+                            <button class="ms-btn ms-btn-clear" id="ms-clear-all-campaign">Hapus Semua</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="filter-group">
                 <label>Lokasi</label>

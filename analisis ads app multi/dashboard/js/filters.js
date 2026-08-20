@@ -56,17 +56,8 @@ function applyFilters(data, sel) {
  * Populate filter dropdowns from available values.
  */
 function renderFilterDropdowns(state) {
-    // Campaign dropdown (unchanged — single select)
-    const camSel = document.getElementById('filter-campaign');
-    if (camSel) {
-        camSel.innerHTML = '<option value="">Semua Campaign</option>';
-        state.availableCampaigns.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            camSel.appendChild(opt);
-        });
-    }
+    // Multi-select campaign
+    renderCampaignMultiSelect(state.availableCampaigns, state.selected.campaigns);
 
     // Multi-select location
     renderLocationMultiSelect(state.availableLocations, state.selected.locations);
@@ -130,6 +121,64 @@ function updateMultiSelectTrigger(selectedLocs) {
 /**
  * Read currently checked locations from multi-select DOM.
  */
+
+
+function readSelectedCampaigns() {
+    const checkboxes = document.querySelectorAll('#ms-options-campaign input[type="checkbox"]:checked');
+    return [...checkboxes].map(cb => cb.value);
+}
+
+function updateMultiSelectTriggerCampaign(selectedCams) {
+    const trigger = document.getElementById('ms-trigger-campaign');
+    if (!trigger) return;
+    const placeholder = trigger.querySelector('.multi-select-placeholder');
+    if (!placeholder) return;
+
+    if (selectedCams.length === 0) {
+        placeholder.textContent = 'Semua Campaign';
+        placeholder.classList.remove('has-selection');
+        trigger.title = 'Semua Campaign';
+    } else if (selectedCams.length === 1) {
+        placeholder.textContent = selectedCams[0];
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedCams[0];
+    } else if (selectedCams.length <= 2) {
+        placeholder.textContent = selectedCams.join(', ');
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedCams.join(', ');
+    } else {
+        placeholder.textContent = `${selectedCams.length} campaign dipilih`;
+        placeholder.classList.add('has-selection');
+        trigger.title = selectedCams.join(', ');
+    }
+}
+
+function renderCampaignMultiSelect(campaigns, selectedCams) {
+    const container = document.getElementById('ms-options-campaign');
+    if (!container) return;
+    container.innerHTML = '';
+    campaigns.forEach(cam => {
+        const isChecked = selectedCams.includes(cam);
+        const item = document.createElement('label');
+        item.className = 'ms-option' + (isChecked ? ' checked' : '');
+        item.innerHTML = `
+            <input type="checkbox" value="${cam}" ${isChecked ? 'checked' : ''}>
+            <span class="ms-checkbox"></span>
+            <span class="ms-option-text">${cam}</span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function filterCampaignOptions(searchText) {
+    const query = searchText.toLowerCase().trim();
+    const options = document.querySelectorAll('#ms-options-campaign .ms-option');
+    options.forEach(opt => {
+        const text = opt.querySelector('.ms-option-text')?.textContent.toLowerCase() || '';
+        opt.classList.toggle('hidden', query !== '' && !text.includes(query));
+    });
+}
+
 function readSelectedLocations() {
     const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]:checked');
     return [...checkboxes].map(cb => cb.value);
@@ -141,8 +190,7 @@ function readSelectedLocations() {
 function readFilters(filterState) {
     const sel = { ...filterState.selected };
 
-    const camVal = document.getElementById('filter-campaign')?.value;
-    sel.campaigns = camVal ? [camVal] : [];
+    sel.campaigns = readSelectedCampaigns();
 
     // Multi-select locations
     sel.locations = readSelectedLocations();
@@ -203,11 +251,11 @@ function initDatePickers(state) {
  * Update the location multi-select options based on the selected campaign.
  */
 function updateLocationMultiSelect(filterState, rawData) {
-    const selCam = filterState.selected.campaigns[0];
+    const selCams = filterState.selected.campaigns;
 
     let validLocations;
-    if (selCam) {
-        const camData = rawData.filter(r => r.campaign === selCam);
+    if (selCams.length > 0) {
+        const camData = rawData.filter(r => selCams.includes(r.campaign));
         validLocations = [...new Set(camData.map(r => r.location))].sort();
     } else {
         validLocations = filterState.availableLocations;
@@ -226,101 +274,109 @@ function updateLocationMultiSelect(filterState, rawData) {
  * Bind filter events. Calls onChange() whenever any filter changes.
  */
 function bindFilterEvents(filterState, rawData, onChange) {
-    // Campaign dropdown
-    const camEl = document.getElementById('filter-campaign');
-    if (camEl) {
-        camEl.addEventListener('change', () => {
-            filterState.selected = readFilters(filterState);
-            updateLocationMultiSelect(filterState, rawData);
-            filterState.selected = readFilters(filterState);
-            onChange();
-        });
-    }
 
-    // Multi-select location: toggle dropdown
-    const trigger = document.getElementById('ms-trigger-location');
-    const dropdown = document.getElementById('ms-dropdown-location');
-    const multiSelect = document.getElementById('multi-select-location');
+    // Helper to bind a generic multi-select
+    function bindMultiSelectEvents(type, readFunc, updateTriggerFunc, updateCascadeFunc) {
+        const trigger = document.getElementById(`ms-trigger-${type}`);
+        const dropdown = document.getElementById(`ms-dropdown-${type}`);
+        const multiSelect = document.getElementById(`multi-select-${type}`);
+        const optionsContainer = document.getElementById(`ms-options-${type}`);
+        const searchInput = document.getElementById(`ms-search-${type}`);
+        const selectAllBtn = document.getElementById(`ms-select-all-${type}`);
+        const clearAllBtn = document.getElementById(`ms-clear-all-${type}`);
+        const filterOptions = type === 'location' ? filterLocationOptions : filterCampaignOptions;
 
-    if (trigger && dropdown) {
-        trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = dropdown.classList.contains('open');
-            dropdown.classList.toggle('open', !isOpen);
-            multiSelect?.classList.toggle('open', !isOpen);
-            if (!isOpen) {
-                const searchInput = document.getElementById('ms-search-location');
-                if (searchInput) { searchInput.value = ''; filterLocationOptions(''); searchInput.focus(); }
-            }
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!multiSelect?.contains(e.target)) {
-                dropdown.classList.remove('open');
-                multiSelect?.classList.remove('open');
-            }
-        });
-    }
-
-    // Multi-select: checkbox change
-    const optionsContainer = document.getElementById('ms-options-location');
-    if (optionsContainer) {
-        optionsContainer.addEventListener('change', (e) => {
-            if (e.target.type === 'checkbox') {
-                const label = e.target.closest('.ms-option');
-                if (label) label.classList.toggle('checked', e.target.checked);
-                filterState.selected.locations = readSelectedLocations();
-                updateMultiSelectTrigger(filterState.selected.locations);
-                onChange();
-            }
-        });
-    }
-
-    // Multi-select: search filter
-    const searchInput = document.getElementById('ms-search-location');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            filterLocationOptions(e.target.value);
-        });
-        // Prevent dropdown close when clicking search
-        searchInput.addEventListener('click', (e) => e.stopPropagation());
-    }
-
-    // Multi-select: Select All / Clear All
-    const selectAllBtn = document.getElementById('ms-select-all');
-    const clearAllBtn = document.getElementById('ms-clear-all');
-
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]');
-            checkboxes.forEach(cb => {
-                // Only select visible (non-hidden) options
-                if (!cb.closest('.ms-option').classList.contains('hidden')) {
-                    cb.checked = true;
-                    cb.closest('.ms-option').classList.add('checked');
+        if (trigger && dropdown) {
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = dropdown.classList.contains('open');
+                dropdown.classList.toggle('open', !isOpen);
+                multiSelect?.classList.toggle('open', !isOpen);
+                if (!isOpen && searchInput) { 
+                    searchInput.value = ''; filterOptions(''); searchInput.focus(); 
                 }
             });
-            filterState.selected.locations = readSelectedLocations();
-            updateMultiSelectTrigger(filterState.selected.locations);
-            onChange();
-        });
+            document.addEventListener('click', (e) => {
+                if (!multiSelect?.contains(e.target)) {
+                    dropdown.classList.remove('open');
+                    multiSelect?.classList.remove('open');
+                }
+            });
+        }
+
+        if (optionsContainer) {
+            optionsContainer.addEventListener('change', (e) => {
+                if (e.target.type === 'checkbox') {
+                    const label = e.target.closest('.ms-option');
+                    if (label) label.classList.toggle('checked', e.target.checked);
+                    
+                    if (type === 'campaign') {
+                        filterState.selected.campaigns = readFunc();
+                        updateTriggerFunc(filterState.selected.campaigns);
+                        if (updateCascadeFunc) updateCascadeFunc(filterState, rawData);
+                    } else {
+                        filterState.selected.locations = readFunc();
+                        updateTriggerFunc(filterState.selected.locations);
+                    }
+                    onChange();
+                }
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => filterOptions(e.target.value));
+            searchInput.addEventListener('click', (e) => e.stopPropagation());
+        }
+
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const checkboxes = document.querySelectorAll(`#ms-options-${type} input[type="checkbox"]`);
+                checkboxes.forEach(cb => {
+                    if (!cb.closest('.ms-option').classList.contains('hidden')) {
+                        cb.checked = true;
+                        cb.closest('.ms-option').classList.add('checked');
+                    }
+                });
+                
+                if (type === 'campaign') {
+                    filterState.selected.campaigns = readFunc();
+                    updateTriggerFunc(filterState.selected.campaigns);
+                    if (updateCascadeFunc) updateCascadeFunc(filterState, rawData);
+                } else {
+                    filterState.selected.locations = readFunc();
+                    updateTriggerFunc(filterState.selected.locations);
+                }
+                onChange();
+            });
+        }
+
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const checkboxes = document.querySelectorAll(`#ms-options-${type} input[type="checkbox"]`);
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('.ms-option').classList.remove('checked');
+                });
+                
+                if (type === 'campaign') {
+                    filterState.selected.campaigns = [];
+                    updateTriggerFunc([]);
+                    if (updateCascadeFunc) updateCascadeFunc(filterState, rawData);
+                } else {
+                    filterState.selected.locations = [];
+                    updateTriggerFunc([]);
+                }
+                onChange();
+            });
+        }
     }
 
-    if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const checkboxes = document.querySelectorAll('#ms-options-location input[type="checkbox"]');
-            checkboxes.forEach(cb => {
-                cb.checked = false;
-                cb.closest('.ms-option').classList.remove('checked');
-            });
-            filterState.selected.locations = [];
-            updateMultiSelectTrigger([]);
-            onChange();
-        });
-    }
+    bindMultiSelectEvents('campaign', readSelectedCampaigns, updateMultiSelectTriggerCampaign, updateLocationMultiSelect);
+
+
+    bindMultiSelectEvents('location', readSelectedLocations, updateMultiSelectTrigger, null);
 
     // Flatpickr date change events
     if (filterState._flatpickrStart) {

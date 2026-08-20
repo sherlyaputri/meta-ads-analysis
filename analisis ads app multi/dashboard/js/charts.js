@@ -164,6 +164,10 @@ function renderCostPerTTKLocation(metrics) {
 
     if (sorted.length === 0) return;
 
+    // Dynamic height based on number of items
+    const containerHeight = Math.max(300, sorted.length * 28 + 60);
+    ctx.canvas.parentNode.style.height = `${containerHeight}px`;
+
     const avg = metrics.avgCostPerTTK;
     const dataVals = sorted.map(l => l.costPerTTK);
     const maxVal = Math.max(...dataVals, 1);
@@ -193,6 +197,7 @@ function renderCostPerTTKLocation(metrics) {
         },
         options: {
             indexAxis: 'y',
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: (c) => `Cost/TTK: ${formatRpFull(c.raw)}` } },
@@ -282,6 +287,10 @@ function renderTTKPerLocation(metrics) {
     const minVal = Math.min(...dataVals);
     const diff = maxVal - minVal;
 
+    // Dynamic height based on number of items
+    const containerHeight = Math.max(300, sorted.length * 28 + 60);
+    ctx.canvas.parentNode.style.height = `${containerHeight}px`;
+
     chartInstances['ttk-loc'] = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -292,19 +301,19 @@ function renderTTKPerLocation(metrics) {
                 backgroundColor: dataVals.map(v => getPaletteColor('indigo', v, minVal, maxVal)),
                 borderColor: dataVals.map(v => getPaletteColor('indigo', v, minVal, maxVal)),
                 borderWidth: 1,
-                borderRadius: 6,
-                barPercentage: 0.6,
-                categoryPercentage: 0.8
+                borderRadius: 6
             }]
         },
         options: {
+            indexAxis: 'y',
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: (c) => `TTK: ${formatNum(c.raw)}` } },
             },
             scales: {
-                y: { beginAtZero: true, grace: '15%', ticks: { callback: v => formatNum(v) } },
-                x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, autoSkip: false } }
+                x: { beginAtZero: true, grace: '20%', ticks: { callback: v => formatNum(v) } },
+                y: { grid: { display: false }, ticks: { autoSkip: false } }
             }
         },
         plugins: [dataLabelPlugin('#1e293b')]
