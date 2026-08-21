@@ -67,7 +67,11 @@ function renderTTKPerPeriod(metrics) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (c) => `TTK: ${formatNum(c.raw)}`,
+                        label: (c) => {
+                            const p = metrics.periodData[c.dataIndex];
+                            if (!p.isActivePeriod) return 'Tidak pasang ads';
+                            return `TTK: ${formatNum(c.raw)}`;
+                        },
                         afterBody: (context) => {
                             const dataIndex = context[0].dataIndex;
                             const breakdown = metrics.periodData[dataIndex].locationBreakdown;
@@ -91,7 +95,10 @@ function renderTTKPerPeriod(metrics) {
                 x: { grid: { display: false } }
             }
         },
-        plugins: [dataLabelPlugin(COLORS.blue)]
+        plugins: [dataLabelPlugin(COLORS.blue, (val, i) => {
+            const p = metrics.periodData[i];
+            return p && !p.isActivePeriod ? '-' : formatNum(val);
+        })]
     });
 }
 
@@ -125,7 +132,11 @@ function renderKGPerPeriod(metrics) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (c) => `KG: ${formatNum(c.raw)}`,
+                        label: (c) => {
+                            const p = metrics.periodData[c.dataIndex];
+                            if (!p.isActivePeriod) return 'Tidak pasang ads';
+                            return `KG: ${formatNum(c.raw)}`;
+                        },
                         afterBody: (context) => {
                             const dataIndex = context[0].dataIndex;
                             const breakdown = metrics.periodData[dataIndex].locationBreakdown;
@@ -148,7 +159,10 @@ function renderKGPerPeriod(metrics) {
                 x: { grid: { display: false } }
             }
         },
-        plugins: [dataLabelPlugin(COLORS.orange)]
+        plugins: [dataLabelPlugin(COLORS.orange, (val, i) => {
+            const p = metrics.periodData[i];
+            return p && !p.isActivePeriod ? '-' : formatNum(val);
+        })]
     });
 }
 
@@ -182,13 +196,13 @@ function renderCostPerTTKLocation(metrics) {
                 label: 'Cost per TTK',
                 data: dataVals,
                 backgroundColor: sorted.map(l => {
-                    return l.costPerTTK > avg * 1.5 
-                        ? getPaletteColor('red', l.costPerTTK, minVal, maxVal) 
+                    return l.costPerTTK > avg
+                        ? COLORS.red 
                         : getPaletteColor('green', l.costPerTTK, minVal, maxVal);
                 }),
                 borderColor: sorted.map(l => {
-                    return l.costPerTTK > avg * 1.5 
-                        ? getPaletteColor('red', l.costPerTTK, minVal, maxVal) 
+                    return l.costPerTTK > avg
+                        ? COLORS.red 
                         : getPaletteColor('green', l.costPerTTK, minVal, maxVal);
                 }),
                 borderWidth: 1,
@@ -235,10 +249,10 @@ function renderCostPerTTKPeriod(metrics) {
     if (!ctx || !metrics) return;
     if (chartInstances['costttk-period']) chartInstances['costttk-period'].destroy();
 
-    const pd = metrics.periodData.filter(p => p.costPerTTK != null);
+    const pd = metrics.periodData; // Keep all periods so we can show "Tidak pasang ads"
     if (pd.length === 0) return;
 
-    const values = pd.map(p => p.costPerTTK);
+    const values = pd.map(p => p.costPerTTK || 0);
     const minV = Math.min(...values);
     const maxV = Math.max(...values);
     const diff = maxV - minV;
@@ -260,7 +274,15 @@ function renderCostPerTTKPeriod(metrics) {
         options: {
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (c) => `Cost/TTK: ${formatRpFull(c.raw)}` } },
+                tooltip: { 
+                    callbacks: { 
+                        label: (c) => {
+                            const p = metrics.periodData[c.dataIndex];
+                            if (!p.isActivePeriod) return 'Tidak pasang ads';
+                            return `Cost/TTK: ${formatRpFull(c.raw)}`;
+                        }
+                    } 
+                },
             },
             scales: {
                 y: {
@@ -271,7 +293,10 @@ function renderCostPerTTKPeriod(metrics) {
                 x: { grid: { display: false } }
             }
         },
-        plugins: [dataLabelPlugin(COLORS.purple, v => formatRp(v))]
+        plugins: [dataLabelPlugin(COLORS.purple, (val, i) => {
+            const p = metrics.periodData[i];
+            return p && !p.isActivePeriod ? '-' : formatRp(val);
+        })]
     });
 }
 
@@ -658,7 +683,7 @@ function dataLabelPlugin(color, formatter) {
                 meta.data.forEach((bar, i) => {
                     const val = ds.data[i];
                     if (val === null || val === undefined) return;
-                    const text = formatter ? formatter(val) : formatNum(val);
+                    const text = formatter ? formatter(val, i, ds) : formatNum(val);
                     ctx.save();
                     ctx.font = 'bold 11px Inter, sans-serif';
                     ctx.fillStyle = color || '#475569';

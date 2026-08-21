@@ -21,8 +21,9 @@ async function parseExcelFile(file) {
                 const headerIdx = detectHeaderRow(rawRows);
                 const headers = rawRows[headerIdx].map(h => (h != null ? String(h).trim() : ''));
                 const dataRows = rawRows.slice(headerIdx + 1);
-                const rows = buildRows(headers, dataRows);
+                let rows = buildRows(headers, dataRows);
                 broadcastValues(rows);
+                rows = expandToDailyRows(rows);
                 resolve(rows);
             } catch (err) {
                 reject(err);
@@ -165,6 +166,38 @@ function broadcastValues(rows) {
     });
 }
 
+/**
+ * Expand period rows (e.g. weekly) into daily rows for finer granularity.
+ */
+function expandToDailyRows(rows) {
+    const dailyRows = [];
+    rows.forEach(r => {
+        let days = 1;
+        if (r.date && r.dateEnd) {
+            days = Math.round((r.dateEnd - r.date) / (1000 * 60 * 60 * 24)) + 1;
+        }
+        if (days < 1) days = 1;
+
+        for (let i = 0; i < days; i++) {
+            const newDate = new Date(r.date.getTime() + i * 24 * 60 * 60 * 1000);
+            dailyRows.push({
+                ...r,
+                date: newDate,
+                dateEnd: newDate,
+                dateStr: toLocalYYYYMMDD(newDate),
+                actualSpend: r.actualSpend !== null ? r.actualSpend / days : null,
+                budget: r.budget !== null ? r.budget / days : null,
+                views: r.views !== null ? r.views / days : null,
+                viewers: r.viewers !== null ? r.viewers / days : null,
+                linkClicks: r.linkClicks !== null ? r.linkClicks / days : null,
+                ttk: r.ttk !== null ? r.ttk / days : null,
+                kg: r.kg !== null ? r.kg / days : null,
+            });
+        }
+    });
+    return dailyRows;
+}
+
 // ============================================
 // METRICS CALCULATION
 // ============================================
@@ -173,19 +206,21 @@ function broadcastValues(rows) {
  * Calculate all metrics from processed (and filtered) data.
  */
 function calculateMetrics(data, period = 'weekly') {
-    const active = data.filter(r => r.isActive);
-    if (active.length === 0) return null;
+    if (data.length === 0) return null;
 
-    // All rows including kargo are processed together
-    const mainRows = active;
-
+    // Filter out rows completely without campaign/location, but KEEP inactive rows (spend=0) 
+    // so we can display "Tidak pasang ads" in period charts.
+    const activeDataForTotals = data.filter(r => r.isActive);
+    const mainRows = data; 
+    
     if (mainRows.length === 0) return null;
 
-    const totalSpend = sumField(mainRows, 'actualSpend');
-    const totalTTK = sumField(mainRows, 'ttk');
-    const totalKG = sumField(mainRows, 'kg');
-    const totalViews = sumField(mainRows, 'views');
-    const totalClicks = sumField(mainRows, 'linkClicks');
+    // Use activeDataForTotals for totals so we don't accidentally count empty rows in averages
+    const totalSpend = sumField(activeDataForTotals, 'actualSpend');
+    const totalTTK = sumField(activeDataForTotals, 'ttk');
+    const totalKG = sumField(activeDataForTotals, 'kg');
+    const totalViews = sumField(activeDataForTotals, 'views');
+    const totalClicks = sumField(activeDataForTotals, 'linkClicks');
     const avgCostPerTTK = safeDiv(totalSpend, totalTTK) || 0;
     const avgCostPerKG = safeDiv(totalSpend, totalKG) || 0;
     const ctr = safeDiv(totalClicks, totalViews) != null ? safeDiv(totalClicks, totalViews) * 100 : 0;
@@ -205,9 +240,9 @@ function calculateMetrics(data, period = 'weekly') {
         trendKG: calcTrend(periodData.map(p => p.totalKG)),
         trendCostPerTTK: calcTrend(periodData.filter(p => p.costPerTTK != null).map(p => p.costPerTTK)),
         trendCTR: calcTrend(periodData.filter(p => p.ctr != null).map(p => p.ctr)),
-        dateMin: active.reduce((m, r) => (r.date < m ? r.date : m), active[0].date),
-        dateMax: active.reduce((m, r) => (r.date > m ? r.date : m), active[0].date),
-        totalWeeks: new Set(active.map(r => toLocalYYYYMMDD(r.date))).size,
+        dateMin: data.reduce((m, r) => (r.date < m ? r.date : m), data[0].date),
+        dateMax: data.reduce((m, r) => (r.date > m ? r.date : m), data[0].date),
+        totalWeeks: new Set(data.map(r => getMonday(r.date).getTime())).size,
     };
 }
 
@@ -215,14 +250,21 @@ function aggregateByPeriod(data, period) {
     const groups = {};
     data.forEach(r => {
         let key;
+        let groupDate = r.date;
         if (period === 'monthly') {
             key = `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}`;
+            groupDate = new Date(r.date.getFullYear(), r.date.getMonth(), 1);
         } else if (period === 'yearly') {
             key = String(r.date.getFullYear());
-        } else {
+            groupDate = new Date(r.date.getFullYear(), 0, 1);
+        } else if (period === 'daily') {
             key = toLocalYYYYMMDD(r.date);
+        } else {
+            // weekly - group by Monday of that week
+            groupDate = getMonday(r.date);
+            key = toLocalYYYYMMDD(groupDate);
         }
-        if (!groups[key]) groups[key] = { key, date: new Date(r.date), rows: [] };
+        if (!groups[key]) groups[key] = { key, date: groupDate, rows: [] };
         groups[key].rows.push(r);
     });
 
@@ -244,29 +286,58 @@ function aggregateByPeriod(data, period) {
                 locationBreakdown[r.location].kg += (r.kg || 0);
             });
 
+            const isActivePeriod = g.rows.some(r => r.isActive);
+
             return {
-                label: periodLabel(g.key, period),
+                label: periodLabel(g.key, period, g.rows),
                 key: g.key,
+                isActivePeriod,
                 totalSpend: s, totalTTK: t, totalKG: k, totalViews: v, totalClicks: c,
-                costPerTTK: safeDiv(s, t),
-                costPerKG: safeDiv(s, k),
-                ctr: safeDiv(c, v) != null ? safeDiv(c, v) * 100 : null,
-                cvr: safeDiv(t, c) != null ? safeDiv(t, c) * 100 : null,
+                costPerTTK: isActivePeriod ? safeDiv(s, t) : null,
+                costPerKG: isActivePeriod ? safeDiv(s, k) : null,
+                ctr: isActivePeriod && safeDiv(c, v) != null ? safeDiv(c, v) * 100 : null,
+                cvr: isActivePeriod && safeDiv(t, c) != null ? safeDiv(t, c) * 100 : null,
                 locationBreakdown: locationBreakdown,
             };
         });
 }
 
-function periodLabel(key, period) {
+function periodLabel(key, period, rows) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
     if (period === 'monthly') {
         const [y, m] = key.split('-');
         return `${months[parseInt(m, 10) - 1]} ${y}`;
     }
     if (period === 'yearly') return key;
-    // weekly
+    
     const d = parseLocalYYYYMMDD(key);
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`;
+    if (period === 'daily') {
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`;
+    }
+    
+    // weekly
+    if (rows && rows.length > 0) {
+        let minTime = rows[0].date.getTime();
+        let maxTime = rows[0].date.getTime();
+        for (const r of rows) {
+            const t = r.date.getTime();
+            if (t < minTime) minTime = t;
+            if (t > maxTime) maxTime = t;
+        }
+        const minDate = new Date(minTime);
+        const maxDate = new Date(maxTime);
+        
+        if (minTime !== maxTime) {
+            return `${String(minDate.getDate()).padStart(2, '0')} ${months[minDate.getMonth()]} - ${String(maxDate.getDate()).padStart(2, '0')} ${months[maxDate.getMonth()]}`;
+        } else {
+            return `${String(minDate.getDate()).padStart(2, '0')} ${months[minDate.getMonth()]}`;
+        }
+    }
+
+    // fallback
+    const dEnd = new Date(d);
+    dEnd.setDate(d.getDate() + 6);
+    return `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} - ${String(dEnd.getDate()).padStart(2, '0')} ${months[dEnd.getMonth()]}`;
 }
 
 function aggregateByLocation(data) {
@@ -343,4 +414,11 @@ function toLocalYYYYMMDD(date) {
 function parseLocalYYYYMMDD(str) {
     const [y, m, d] = str.split('-').map(Number);
     return new Date(y, m - 1, d);
+}
+
+function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
 }
