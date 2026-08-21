@@ -92,15 +92,17 @@ function calcTrend(values) {
         return { slope: 0, direction: '[STABIL]', pctChange: 0 };
     }
 
-    const firstVal = y[0] !== 0 ? y[0] : 1;
-    const pctChange = (slope * n / Math.abs(firstVal)) * 100;
+    const firstVal = y[0] || 0;
+    const safeFirstVal = y[0] !== 0 ? Math.abs(y[0]) : 1;
+    const totalChange = slope * n;
+    const pctChange = (totalChange / safeFirstVal) * 100;
 
     let direction;
     if (Math.abs(pctChange) < 5) direction = '[STABIL]';
     else if (pctChange > 0) direction = '[NAIK]';
     else direction = '[TURUN]';
 
-    return { slope, direction, pctChange };
+    return { slope, direction, pctChange, n, firstVal, totalChange };
 }
 
 // ---- Formatting ----
@@ -190,11 +192,34 @@ function getColor(index) {
 // ---- Trend Arrow ----
 
 function trendHTML(trend) {
-    if (!trend || trend.direction === 'Tidak cukup data') return '<span class="trend trend-stable">—</span>';
-    const pct = Math.abs(trend.pctChange).toFixed(1);
-    if (trend.direction === '[NAIK]') return `<span class="trend trend-up">▲ ${pct}%</span>`;
-    if (trend.direction === '[TURUN]') return `<span class="trend trend-down">▼ ${pct}%</span>`;
-    return `<span class="trend trend-stable">→ ${pct}%</span>`;
+    let tooltipText = "Kalkulasi Tren (Regresi Linear):\nTotal Perubahan = Kemiringan Tren × Jumlah Periode\nPersentase = (Total Perubahan ÷ Nilai Awal) × 100%\n\n*Catatan: Persentase bisa tampak ekstrem jika nilai awal sangat kecil.";
+    
+    if (trend && trend.n !== undefined && trend.direction !== 'Tidak cukup data') {
+        const fSlope = formatNum(trend.slope);
+        const fTotal = formatNum(trend.totalChange);
+        const fFirst = formatNum(trend.firstVal);
+        const pct = trend.pctChange.toFixed(1);
+        
+        tooltipText = `Kalkulasi Tren (Regresi Linear):\n` +
+                      `1. Rata-rata perubahan (Kemiringan): ${fSlope}\n` +
+                      `2. Jumlah Periode: ${trend.n}\n` +
+                      `3. Total Perubahan: ${fSlope} × ${trend.n} = ${fTotal}\n` +
+                      `4. Nilai Awal: ${fFirst}\n` +
+                      `5. Persentase: (${fTotal} ÷ ${fFirst}) × 100% = ${pct}%\n\n` +
+                      `*Catatan: Persentase bisa ekstrem jika nilai awal mendekati nol.`;
+    }
+
+    let innerHTML = '';
+    if (!trend || trend.direction === 'Tidak cukup data') {
+        innerHTML = '<span class="trend trend-stable">—</span>';
+    } else {
+        const pct = Math.abs(trend.pctChange).toFixed(1);
+        if (trend.direction === '[NAIK]') innerHTML = `<span class="trend trend-up">▲ ${pct}%</span>`;
+        else if (trend.direction === '[TURUN]') innerHTML = `<span class="trend trend-down">▼ ${pct}%</span>`;
+        else innerHTML = `<span class="trend trend-stable">→ ${pct}%</span>`;
+    }
+
+    return `<span style="display:inline-flex; align-items:center;">${innerHTML} <span class="kpi-info" data-tooltip="${tooltipText}">?</span></span>`;
 }
 
 // ---- Helpers ----

@@ -95,8 +95,8 @@
                         </div>
                         <div class="multi-select-options" id="ms-options-location"></div>
                         <div class="multi-select-footer">
-                            <button class="ms-btn ms-btn-all" id="ms-select-all">Pilih Semua</button>
-                            <button class="ms-btn ms-btn-clear" id="ms-clear-all">Hapus Semua</button>
+                            <button class="ms-btn ms-btn-all" id="ms-select-all-location">Pilih Semua</button>
+                            <button class="ms-btn ms-btn-clear" id="ms-clear-all-location">Hapus Semua</button>
                         </div>
                     </div>
                 </div>
@@ -132,32 +132,32 @@
             <!-- KPI Cards -->
             <div class="kpi-grid">
                 <div class="kpi-card" id="kpi-spend">
-                    <div class="kpi-label">Total Spend</div>
+                    <div class="kpi-label">Total Spend <span class="kpi-info" data-tooltip="Total keseluruhan uang yang dibayarkan ke Meta Ads (dari data yang aktif difilter).">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>
                 <div class="kpi-card" id="kpi-ttk">
-                    <div class="kpi-label">Total TTK (Resi)</div>
+                    <div class="kpi-label">Total TTK (Resi) <span class="kpi-info" data-tooltip="Total resi yang didapatkan. Jika nilainya sangat tinggi, kemungkinan bercampur dengan resi organik di luar iklan.">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>
                 <div class="kpi-card" id="kpi-kg">
-                    <div class="kpi-label">Total KG</div>
+                    <div class="kpi-label">Total KG <span class="kpi-info" data-tooltip="Total keseluruhan berat barang yang dikirim.">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>
                 <div class="kpi-card" id="kpi-costttk">
-                    <div class="kpi-label">Cost per TTK</div>
+                    <div class="kpi-label">Cost per TTK <span class="kpi-info" data-tooltip="Rata-rata biaya untuk 1 resi.&#10;Rumus: Total Spend ÷ Total TTK">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>
                 <div class="kpi-card" id="kpi-ctr">
-                    <div class="kpi-label">CTR (Daya Tarik)</div>
+                    <div class="kpi-label">CTR (Daya Tarik) <span class="kpi-info" data-tooltip="Persentase orang yang mengklik iklan.&#10;Rumus: (Total Clicks ÷ Total Views) × 100%">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>
                 <div class="kpi-card" id="kpi-cvr">
-                    <div class="kpi-label">CVR (Closing)</div>
+                    <div class="kpi-label">CVR (Closing) <span class="kpi-info" data-tooltip="Persentase klik yang berujung pada resi. Bisa >100% jika data TTK digabung dengan organik.&#10;Rumus: (Total TTK ÷ Total Clicks) × 100%">?</span></div>
                     <div class="kpi-value">-</div>
                     <div class="kpi-trend"></div>
                 </div>

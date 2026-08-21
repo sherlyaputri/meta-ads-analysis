@@ -585,7 +585,6 @@ body {
     border-radius: var(--radius);
     padding: 1.25rem 1.25rem 1rem;
     position: relative;
-    overflow: hidden;
     transition: var(--transition);
 }
 
@@ -610,6 +609,7 @@ body {
     border-color: var(--border-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow);
+    z-index: 50;
 }
 
 .kpi-label {
@@ -619,6 +619,78 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.kpi-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: bold;
+    cursor: help;
+    margin-left: 6px;
+    position: relative;
+    transition: var(--transition);
+}
+
+.kpi-info:hover {
+    background: var(--blue);
+    color: white;
+}
+
+.kpi-info::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 150%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-5px);
+    background: #0f172a;
+    color: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: pre-wrap;
+    width: 220px;
+    text-align: center;
+    text-transform: none;
+    letter-spacing: normal;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    pointer-events: none;
+    line-height: 1.4;
+}
+
+.kpi-info::before {
+    content: '';
+    position: absolute;
+    top: calc(150% - 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-5px);
+    border: 5px solid transparent;
+    border-bottom-color: #0f172a;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.kpi-info:hover::after,
+.kpi-info:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
 }
 
 .kpi-value {
@@ -678,6 +750,8 @@ body {
     border-radius: var(--radius);
     padding: 1.25rem;
     transition: var(--transition);
+    display: flex;
+    flex-direction: column;
 }
 
 .chart-card:hover {
@@ -702,6 +776,9 @@ body {
 .chart-canvas-wrap {
     position: relative;
     height: 300px;
+    margin-top: auto;
+    margin-bottom: auto;
+    width: 100%;
 }
 
 .chart-canvas-wrap canvas {

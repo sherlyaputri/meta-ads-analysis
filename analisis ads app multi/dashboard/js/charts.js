@@ -69,7 +69,7 @@ function renderTTKPerPeriod(metrics) {
                     callbacks: {
                         label: (c) => {
                             const p = metrics.periodData[c.dataIndex];
-                            if (!p.isActivePeriod) return 'Tidak pasang ads';
+                            if (!p.isActivePeriod && c.raw === 0) return 'Tidak pasang ads';
                             return `TTK: ${formatNum(c.raw)}`;
                         },
                         afterBody: (context) => {
@@ -97,7 +97,7 @@ function renderTTKPerPeriod(metrics) {
         },
         plugins: [dataLabelPlugin(COLORS.blue, (val, i) => {
             const p = metrics.periodData[i];
-            return p && !p.isActivePeriod ? '-' : formatNum(val);
+            return !p.isActivePeriod && val === 0 ? '-' : formatNum(val);
         })]
     });
 }
@@ -134,7 +134,7 @@ function renderKGPerPeriod(metrics) {
                     callbacks: {
                         label: (c) => {
                             const p = metrics.periodData[c.dataIndex];
-                            if (!p.isActivePeriod) return 'Tidak pasang ads';
+                            if (!p.isActivePeriod && c.raw === 0) return 'Tidak pasang ads';
                             return `KG: ${formatNum(c.raw)}`;
                         },
                         afterBody: (context) => {
@@ -161,7 +161,7 @@ function renderKGPerPeriod(metrics) {
         },
         plugins: [dataLabelPlugin(COLORS.orange, (val, i) => {
             const p = metrics.periodData[i];
-            return p && !p.isActivePeriod ? '-' : formatNum(val);
+            return !p.isActivePeriod && val === 0 ? '-' : formatNum(val);
         })]
     });
 }
@@ -295,7 +295,11 @@ function renderCostPerTTKPeriod(metrics) {
         },
         plugins: [dataLabelPlugin(COLORS.purple, (val, i) => {
             const p = metrics.periodData[i];
-            return p && !p.isActivePeriod ? '-' : formatRp(val);
+            // Jika ada TTK organik walau tidak pasang ads (cost=0), tetap tampilkan nominal 0 (karena spend=0, cost/ttk=0).
+            // Tapi jika tidak ada sama sekali, ganti dengan 'Tidak pasang ads' jika user memintanya (val===0).
+            // Berdasarkan permintaan user: "-" diganti "Tidak pasang ads".
+            if (!p.isActivePeriod && val === 0) return ['Tidak', 'pasang', 'ads']; 
+            return formatRp(val);
         })]
     });
 }
@@ -366,7 +370,7 @@ function renderSpendDistribution(metrics) {
             }]
         },
         options: {
-            cutout: '60%',
+            cutout: '65%',
             plugins: {
                 legend: {
                     position: 'right',
@@ -381,7 +385,31 @@ function renderSpendDistribution(metrics) {
                     }
                 },
             }
-        }
+        },
+        plugins: [{
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                const ctx = chart.ctx;
+                const chartArea = chart.chartArea;
+                if (!chartArea) return;
+                
+                const centerX = (chartArea.left + chartArea.right) / 2;
+                const centerY = (chartArea.top + chartArea.bottom) / 2;
+                
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.font = "600 12px Inter, sans-serif";
+                ctx.fillStyle = "#64748b";
+                ctx.fillText("Total Spend", centerX, centerY - 10);
+                
+                ctx.font = "bold 15px Inter, sans-serif";
+                ctx.fillStyle = "#0f172a";
+                ctx.fillText(formatRp(totalSpend), centerX, centerY + 10);
+                ctx.restore();
+            }
+        }]
     });
 }
 
@@ -687,15 +715,30 @@ function dataLabelPlugin(color, formatter) {
                     ctx.save();
                     ctx.font = 'bold 11px Inter, sans-serif';
                     ctx.fillStyle = color || '#475569';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
 
                     if (chart.options.indexAxis === 'y') {
                         ctx.textAlign = 'left';
                         ctx.textBaseline = 'middle';
-                        ctx.fillText(text, bar.x + 6, bar.y);
+                        if (Array.isArray(text)) {
+                            const lh = 14;
+                            const startY = bar.y - ((text.length - 1) * lh) / 2;
+                            text.forEach((t, j) => ctx.fillText(t, bar.x + 6, startY + j * lh));
+                        } else {
+                            ctx.fillText(text, bar.x + 6, bar.y);
+                        }
                     } else {
-                        ctx.fillText(text, bar.x, bar.y - 6);
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        if (Array.isArray(text)) {
+                            const lh = 14;
+                            const startY = bar.y - 6;
+                            // draw bottom up
+                            for (let j = text.length - 1; j >= 0; j--) {
+                                ctx.fillText(text[j], bar.x, startY - ((text.length - 1 - j) * lh));
+                            }
+                        } else {
+                            ctx.fillText(text, bar.x, bar.y - 6);
+                        }
                     }
                     ctx.restore();
                 });
